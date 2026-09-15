@@ -876,9 +876,12 @@ function nextQ(){idx++;(idx>=QUESTIONS.length)?endGame():goPass();}
 
 function renderScore(){$('ptsA').textContent=toAr(score.A);$('ptsB').textContent=toAr(score.B);renderTug();}
 function renderTug(){const t=score.A+score.B;const pa=t?(score.A/t*100):50;const e=$('tugA');if(e)e.style.width=pa+'%';}
-function countUp(id,from,to){const el=$(id),dur=550;let t0=null;
+function countUp(id,from,to){const el=$(id),dur=550;const mine=(el._anim=(el._anim||0)+1);let t0=null;
   el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');
-  function step(t){if(!t0)t0=t;const k=Math.min(1,(t-t0)/dur);el.textContent=toAr(Math.round(from+(to-from)*k));if(k<1)requestAnimationFrame(step);}requestAnimationFrame(step);}
+  function step(t){if(el._anim!==mine)return;if(!t0)t0=t;const k=Math.min(1,(t-t0)/dur);
+    el.textContent=toAr(Math.round(from+(to-from)*k));
+    if(k<1)requestAnimationFrame(step);else el.textContent=toAr(to);}
+  requestAnimationFrame(step);}
 function floatPoints(who,amt){const host=$('team'+who);const s=document.createElement('span');s.className='floatpts';s.textContent='+'+toAr(amt);host.appendChild(s);setTimeout(()=>s.remove(),900);}
 
 function endGame(){
