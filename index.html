@@ -36,9 +36,16 @@
       radial-gradient(1000px 560px at 85% -12%, var(--glow1) 0%, transparent 58%),
       radial-gradient(820px 500px at -8% 110%, var(--glow2) 0%, transparent 58%),
       var(--bg);
-    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
-    -webkit-font-smoothing:antialiased;
+    min-height:100vh; min-height:100dvh; display:flex; align-items:flex-start; justify-content:center;
+    padding:20px; overflow-x:hidden; -webkit-font-smoothing:antialiased;
   }
+  @media (max-width:560px){
+    body{padding:8px}
+    .app{border-radius:22px}
+    .pad{padding:20px 15px 22px}
+    h1.title{font-size:2.4rem}
+  }
+  @media (min-height:800px){ body{align-items:center} }
   .app{
     width:100%; max-width:520px; background:var(--surface);
     border:1px solid var(--line); border-radius:30px; box-shadow:var(--shadow);
