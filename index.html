@@ -779,7 +779,7 @@ function renderProgress(){
   $('progress').innerHTML=QUESTIONS.map((_,i)=>`<span class="dot ${i<idx?'done':(i===idx?'cur':'')}"></span>`).join('');
 }
 function loadQ(){
-  const item=QUESTIONS[idx];locked=false;
+  const item=QUESTIONS[idx];locked=false;stealPhase=false;$('skipStealBtn').hidden=true;
   const who=answeringTeam(item),other=who==='A'?'B':'A';
   setTeamColor(who);renderProgress();
   curMult=(score[other]-score[who]>=CATCHUP_GAP)?2:1;
@@ -832,7 +832,8 @@ function reveal(picked){
 function startSteal(item,who,other,picked){
   stealPhase=true;
   document.querySelectorAll('.opt').forEach((o,i)=>{
-    if(i===picked||o.classList.contains('faded')){o.disabled=true;if(i===picked)o.classList.add('wrong');}
+    o.classList.remove('faded'); // restore lifeline-removed options: steal faces the full question
+    if(i===picked){o.disabled=true;o.classList.add('wrong');}
     else{o.disabled=false;o.onclick=()=>stealChoose(i);}
   });
   setTeamColor(other);
