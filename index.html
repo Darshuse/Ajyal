@@ -999,25 +999,40 @@ function celebrateKids(){
 
 /* ===== وضع الروضة: توليد أسئلة من المنهج بالذكاء الاصطناعي (claude.ai only) ===== */
 function openSchool(){renderCur();show('screenSchool');}
+function parseJSONLoose(t){
+  if(!t)return null;
+  let s=String(t).replace(/```json/gi,'').replace(/```/g,'').trim();
+  const i=s.indexOf('['),j=s.lastIndexOf(']');
+  if(i>=0&&j>i)s=s.slice(i,j+1);
+  try{return JSON.parse(s);}catch(_){return null;}
+}
 async function genFromCurriculum(){
-  const text=$('curText').value.trim();const n=+$('curN').value||5;
-  if(text.length<10){toast('الصِق نص المنهج أولًا');return;}
-  if(!(window.claude&&window.claude.use)){toast('التوليد بالذكاء الاصطناعي يعمل على نسخة claude.ai فقط');return;}
-  $('genStatus').textContent='⏳ جاري التوليد…';$('genBtn').disabled=true;
+  const text=$('curText').value.trim();const n=+$('curN').value||5;const st=$('genStatus');
+  if(text.length<10){st.textContent='';toast('الصِق نص المنهج أولًا (١٠ أحرف على الأقل)');return;}
+  if(!(window.claude&&window.claude.use)){
+    st.textContent='⚠️ هذه الميزة تعمل على نسخة claude.ai فقط (الرابط في الأعلى)، وليست على النسخة العامة (Railway).';return;}
+  st.textContent='⏳ جاري التوليد… (قد يظهر طلب إذن أول مرة — اقبليه)';$('genBtn').disabled=true;
   try{
     const sample=await claude.use('sample');
-    if(!sample){$('genStatus').textContent='التوليد غير متاح في هذا العرض.';$('genBtn').disabled=false;return;}
-    const prompt=`أنت معلّمة روضة خبيرة. من نص المنهج التالي أنشئي ${n} أسئلة اختيار من متعدّد مناسبة لأطفال الروضة، بالعربية الفصحى المبسّطة، وبمعلومات صحيحة فقط. لكل سؤال ٤ خيارات وإجابة واحدة صحيحة ومعلومة قصيرة.\nالنص:\n"""${text}"""\nأعيدي فقط JSON صالحًا: مصفوفة من عناصر بالشكل {"q":"نص السؤال","options":["أ","ب","ج","د"],"answer":0,"fact":"معلومة قصيرة"} بلا أي شرح أو نص خارج الـJSON.`;
-    const raw=await sample.json(prompt);
+    if(!sample){st.textContent='⚠️ التوليد غير متاح هنا — افتحي نسخة claude.ai من الرابط.';$('genBtn').disabled=false;return;}
+    const prompt=`أنت معلّمة روضة خبيرة. من نص المنهج التالي أنشئي ${n} أسئلة اختيار من متعدّد مناسبة لأطفال الروضة، بالعربية الفصحى المبسّطة، وبمعلومات صحيحة فقط. لكل سؤال ٤ خيارات وإجابة واحدة صحيحة ومعلومة قصيرة.\nالنص:\n"""${text}"""\nأعيدي JSON فقط: مصفوفة من عناصر بالشكل {"q":"نص السؤال","options":["أ","ب","ج","د"],"answer":0,"fact":"معلومة قصيرة"} بلا أي شرح أو نص خارج الـJSON.`;
+    let raw=null;
+    try{ raw=await sample.json(prompt); }
+    catch(e1){ const r=await sample(prompt); raw=parseJSONLoose(r&&r.text); }
     const arr=Array.isArray(raw)?raw:(raw&&Array.isArray(raw.questions)?raw.questions:[]);
     genResults=arr.filter(x=>x&&x.q&&Array.isArray(x.options)&&x.options.length>=2).map(x=>{
       const opts=x.options.slice(0,4).map(o=>String(o));
       let a=parseInt(x.answer,10);if(isNaN(a)||a<0||a>=opts.length)a=0;
       return{q:String(x.q),options:opts,answer:a,fact:String(x.fact||'—'),cat:'kids',round:'سؤال المنهج 🏫',status:'pending'};
     });
-    $('genStatus').textContent=genResults.length?`اقترح ${toAr(genResults.length)} سؤالًا — راجعيها واعتمديها.`:'لم أستطع استخراج أسئلة، جرّبي نصًّا أوضح.';
+    st.textContent=genResults.length?`✅ اقترح ${toAr(genResults.length)} سؤالًا — راجعيها واعتمديها.`:'لم أستطع استخراج أسئلة من الردّ، جرّبي نصًّا أوضح أو أعيدي المحاولة.';
     renderCur();
-  }catch(e){$('genStatus').textContent='تعذّر التوليد، حاولي ثانية.';}
+  }catch(e){
+    const code=e&&e.code;
+    st.textContent = code==='not_granted' ? '⚠️ رُفض إذن استخدام الذكاء الاصطناعي — أعيدي وحاولي بالقبول.'
+      : code==='rate_limited' ? '⚠️ محاولات كثيرة بسرعة — انتظري قليلًا ثم أعيدي.'
+      : 'تعذّر التوليد ('+((e&&(e.message||e.code))||'خطأ غير معروف')+') — حاولي ثانية.';
+  }
   $('genBtn').disabled=false;
 }
 function renderCur(){
