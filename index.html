@@ -111,10 +111,10 @@
     display:grid; place-items:center; font-size:.66rem; font-weight:800; background:var(--surface)}
   .mode.sel .check{background:var(--gold); border-color:var(--gold)}
   .mode.sel .check::after{content:'✓'; color:#241748}
-  .qcard{position:relative}
-  .speakBtn{position:absolute; top:8px; inset-inline-start:8px; width:34px; height:34px; border-radius:50%;
-    border:1px solid var(--line); background:var(--surface2); cursor:pointer; font-size:1rem; display:grid; place-items:center}
-  .speakBtn:active{transform:scale(.92)}
+  .listenBtn{display:none; margin:11px auto 0; padding:9px 18px; border-radius:999px; border:1.5px solid var(--gold);
+    background:color-mix(in srgb,var(--gold) 12%, var(--surface)); color:var(--ink); cursor:pointer;
+    font-size:.92rem; font-weight:700; font-family:"Baloo Bhaijaan 2",sans-serif}
+  .listenBtn:active{transform:scale(.96)}
 
   .level-row{display:grid; grid-template-columns:repeat(3,1fr); gap:9px}
   .lvl{border:1px solid var(--line); background:var(--surface); color:var(--ink);
@@ -450,9 +450,9 @@
       <span class="ring-num" id="ringNum">١٥</span>
     </div>
     <div class="qcard">
-      <button class="speakBtn" id="speakBtn" onclick="speakQ()" aria-label="اقرأ السؤال" style="display:none">🔊</button>
       <p class="qcat" id="qcat">أمثال وحِكَم شعبية</p>
       <p class="question" id="question">…</p>
+      <button class="listenBtn" id="speakBtn" onclick="speakQ()" style="display:none">🔊 اسمع السؤال</button>
       <p class="qhint">اختر الإجابة الصحيحة</p>
     </div>
     <button class="lifeline" id="lifeBtn" hidden onclick="useLifeline()">🛟 حذف إجابتين <span id="lifeN"></span></button>
@@ -876,8 +876,8 @@ function loadQ(){
     b.onclick=()=>choose(i);box.appendChild(b);});
   const canLife=lifelines[who]>0;$('lifeBtn').hidden=!canLife;$('lifeN').textContent=canLife?`(${toAr(lifelines[who])})`:'';
   const kidMode=(mode==='kids'||mode==='curriculum');
-  $('speakBtn').style.display=kidMode?'grid':'none';
-  stopSpeak(); if(kidMode&&readAloud) setTimeout(speakQ,300);
+  $('speakBtn').style.display=kidMode?'block':'none';
+  stopSpeak();
   startTimer(who);
 }
 function startTimer(who){
