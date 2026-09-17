@@ -1007,28 +1007,39 @@ function sfxCheer(){initAudio();if(!actx||muted)return;[523,659,784,1047].forEac
 let readAloud=true, arVoice=null;
 function pickArVoice(){try{const vs=speechSynthesis.getVoices()||[];arVoice=vs.find(v=>/^ar/i.test(v.lang))||vs.find(v=>/arab/i.test(v.name||''))||arVoice;}catch(_){}}
 if('speechSynthesis'in window){pickArVoice();try{speechSynthesis.addEventListener('voiceschanged',pickArVoice);}catch(_){}}
-function speakText(t){
-  if(muted||!readAloud||!('speechSynthesis'in window)||!t)return false;
-  if(!arVoice)pickArVoice();
-  if(!arVoice)return false; // لا صوت عربي في الجهاز → لا ننطق بصوت خاطئ
+let curAudio=null;
+async function serverTTS(t){
+  if(window.claude&&window.claude.use)return false; // claude.ai: لا خادم TTS
   try{
-    if(speechSynthesis.speaking||speechSynthesis.pending)speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(String(t));
-    u.lang=arVoice.lang||'ar-SA'; u.voice=arVoice; u.rate=.95; u.pitch=1.05;
-    speechSynthesis.speak(u);
-    setTimeout(()=>{try{speechSynthesis.resume();}catch(_){}},90);
-    return true;
+    const r=await fetch('/api/tts?code='+encodeURIComponent(devCode())+'&text='+encodeURIComponent(t));
+    if(!r.ok)return false;
+    const b=await r.blob();const url=URL.createObjectURL(b);
+    if(curAudio){try{curAudio.pause();}catch(_){}}
+    curAudio=new Audio(url);curAudio.onended=()=>{try{URL.revokeObjectURL(url);}catch(_){}};
+    await curAudio.play();return true;
   }catch(_){return false;}
 }
-function stopSpeak(){try{if(speechSynthesis.speaking||speechSynthesis.pending)speechSynthesis.cancel();}catch(_){}}
-function speakQ(){
-  if(!('speechSynthesis'in window)){toast('المتصفح لا يدعم القراءة الصوتية');return;}
-  if(muted){toast('الصوت مكتوم — فعّله من زر 🔊 بالأعلى');return;}
-  if(!arVoice)pickArVoice();
-  if(!arVoice){toast('لا يوجد صوت عربي مثبّت في هذا الجهاز — ثبّته من إعدادات النظام ثم أعِد فتح الصفحة');return;}
+function webSpeak(t){
+  if(!('speechSynthesis'in window)||!t)return false;
+  if(!arVoice)pickArVoice(); if(!arVoice)return false; // لا صوت عربي في الجهاز → رجوع صامت
+  try{
+    if(speechSynthesis.speaking||speechSynthesis.pending)speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(String(t));u.lang=arVoice.lang||'ar-SA';u.voice=arVoice;u.rate=.95;u.pitch=1.05;
+    speechSynthesis.speak(u);setTimeout(()=>{try{speechSynthesis.resume();}catch(_){}},90);return true;
+  }catch(_){return false;}
+}
+async function speakText(t){
+  if(muted||!readAloud||!t)return false;
+  if(await serverTTS(t))return true;   // TTS سحابي (النسخة المنشورة) — يشتغل على أي جهاز
+  return webSpeak(t);                    // رجوع: صوت الجهاز (يتطلب صوتًا عربيًا)
+}
+function stopSpeak(){try{if(curAudio)curAudio.pause();}catch(_){} try{if('speechSynthesis'in window&&(speechSynthesis.speaking||speechSynthesis.pending))speechSynthesis.cancel();}catch(_){}}
+async function speakQ(){
+  if(muted){toast('الصوت مكتوم — فعّله من زر الكتم بالأعلى');return;}
   const item=QUESTIONS[idx];if(!item)return;const L=['أ','ب','ج','د','هـ'];
   const opts=item.options.map((o,i)=>`${L[i]}: ${o}`).join('، ');
-  speakText(item.q+'. '+opts);
+  const ok=await speakText(item.q+'. '+opts);
+  if(!ok)toast('الصوت غير متاح الآن — على النسخة المنشورة يلزم تفعيل TTS بالخادم، أو صوت عربي في جهازك');
 }
 function celebrateKids(who){
   const el=$('celebrate');
@@ -1047,7 +1058,7 @@ function celebrateKids(who){
       el.appendChild(s);
     }
   }
-  el.hidden=false;sfxCheer();speakText(personal?`برافو يا ${first}`:'برافو، إجابة صحيحة');navigator.vibrate&&navigator.vibrate([30,40,30,40,60]);
+  el.hidden=false;sfxCheer();webSpeak(personal?`برافو يا ${first}`:'برافو، إجابة صحيحة');navigator.vibrate&&navigator.vibrate([30,40,30,40,60]);
   clearTimeout(el._t);el._t=setTimeout(()=>{el.hidden=true;},1500);
 }
 
@@ -1085,33 +1096,35 @@ function parseJSONLoose(t){
   if(i>=0&&j>i)s=s.slice(i,j+1);
   try{return JSON.parse(s);}catch(_){return null;}
 }
+function genPromptC(text,n){return `أنت معلّمة روضة خبيرة. من نص المنهج التالي أنشئي ${n} أسئلة اختيار من متعدّد مناسبة لأطفال الروضة، بالعربية الفصحى المبسّطة، وبمعلومات صحيحة فقط. لكل سؤال ٤ خيارات وإجابة واحدة صحيحة ومعلومة قصيرة.\nالنص:\n"""${text}"""\nأعيدي JSON فقط: مصفوفة من عناصر بالشكل {"q":"نص السؤال","options":["أ","ب","ج","د"],"answer":0,"fact":"معلومة قصيرة"} بلا أي شرح أو نص خارج الـJSON.`;}
+function normArrC(raw){return Array.isArray(raw)?raw:(raw&&Array.isArray(raw.questions)?raw.questions:[]);}
+function mapQs(arr){return (arr||[]).filter(x=>x&&x.q&&Array.isArray(x.options)&&x.options.length>=2).map(x=>{
+  const opts=x.options.slice(0,4).map(o=>String(o));let a=parseInt(x.answer,10);if(isNaN(a)||a<0||a>=opts.length)a=0;
+  return{q:String(x.q),options:opts,answer:a,fact:String(x.fact||'—'),cat:'kids',round:'سؤال المنهج 🏫',status:'pending'};});}
 async function genFromCurriculum(){
   const text=$('curText').value.trim();const n=+$('curN').value||5;const st=$('genStatus');
   if(text.length<10){st.textContent='';toast('الصِق نص المنهج أولًا (١٠ أحرف على الأقل)');return;}
-  if(!(window.claude&&window.claude.use)){
-    st.textContent='⚠️ هذه الميزة تعمل على نسخة claude.ai فقط (الرابط في الأعلى)، وليست على النسخة العامة (Railway).';return;}
-  st.textContent='⏳ جاري التوليد… (قد يظهر طلب إذن أول مرة — اقبليه)';$('genBtn').disabled=true;
+  st.textContent='⏳ جاري التوليد…';$('genBtn').disabled=true;
   try{
-    const sample=await claude.use('sample');
-    if(!sample){st.textContent='⚠️ التوليد غير متاح هنا — افتحي نسخة claude.ai من الرابط.';$('genBtn').disabled=false;return;}
-    const prompt=`أنت معلّمة روضة خبيرة. من نص المنهج التالي أنشئي ${n} أسئلة اختيار من متعدّد مناسبة لأطفال الروضة، بالعربية الفصحى المبسّطة، وبمعلومات صحيحة فقط. لكل سؤال ٤ خيارات وإجابة واحدة صحيحة ومعلومة قصيرة.\nالنص:\n"""${text}"""\nأعيدي JSON فقط: مصفوفة من عناصر بالشكل {"q":"نص السؤال","options":["أ","ب","ج","د"],"answer":0,"fact":"معلومة قصيرة"} بلا أي شرح أو نص خارج الـJSON.`;
-    let raw=null;
-    try{ raw=await sample.json(prompt); }
-    catch(e1){ const r=await sample(prompt); raw=parseJSONLoose(r&&r.text); }
-    const arr=Array.isArray(raw)?raw:(raw&&Array.isArray(raw.questions)?raw.questions:[]);
-    genResults=arr.filter(x=>x&&x.q&&Array.isArray(x.options)&&x.options.length>=2).map(x=>{
-      const opts=x.options.slice(0,4).map(o=>String(o));
-      let a=parseInt(x.answer,10);if(isNaN(a)||a<0||a>=opts.length)a=0;
-      return{q:String(x.q),options:opts,answer:a,fact:String(x.fact||'—'),cat:'kids',round:'سؤال المنهج 🏫',status:'pending'};
-    });
-    st.textContent=genResults.length?`✅ اقترح ${toAr(genResults.length)} سؤالًا — راجعيها واعتمديها.`:'لم أستطع استخراج أسئلة من الردّ، جرّبي نصًّا أوضح أو أعيدي المحاولة.';
+    let arr=null;
+    if(window.claude&&window.claude.use){
+      const sample=await claude.use('sample');
+      if(sample){ st.textContent='⏳ جاري التوليد… (قد يظهر طلب إذن أول مرة — اقبليه)';
+        let raw=null; try{raw=await sample.json(genPromptC(text,n));}catch(e1){const r=await sample(genPromptC(text,n));raw=parseJSONLoose(r&&r.text);}
+        arr=normArrC(raw);
+      }
+    }
+    if(arr===null){ // النسخة المنشورة: التوليد عبر الخادم (Claude API)
+      const r=await fetch('/api/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text,n,code:devCode()})});
+      if(r.status===402){st.textContent='⚠️ الاشتراك غير مُفعّل — فعّلي «وضع الروضة» أولًا.';$('genBtn').disabled=false;return;}
+      if(r.status===501){st.textContent='⚠️ التوليد غير مُهيّأ على الخادم بعد (مفتاح API ناقص).';$('genBtn').disabled=false;return;}
+      if(r.status===429){st.textContent='⚠️ تجاوزتِ حدّ اليوم — حاولي غدًا.';$('genBtn').disabled=false;return;}
+      const j=await r.json(); arr=normArrC(j&&j.questions);
+    }
+    genResults=mapQs(arr);
+    st.textContent=genResults.length?`✅ اقترح ${toAr(genResults.length)} سؤالًا — راجعيها واعتمديها.`:'لم أستطع استخراج أسئلة، جرّبي نصًّا أوضح أو أعيدي المحاولة.';
     renderCur();
-  }catch(e){
-    const code=e&&e.code;
-    st.textContent = code==='not_granted' ? '⚠️ رُفض إذن استخدام الذكاء الاصطناعي — أعيدي وحاولي بالقبول.'
-      : code==='rate_limited' ? '⚠️ محاولات كثيرة بسرعة — انتظري قليلًا ثم أعيدي.'
-      : 'تعذّر التوليد ('+((e&&(e.message||e.code))||'خطأ غير معروف')+') — حاولي ثانية.';
-  }
+  }catch(e){ st.textContent='تعذّر التوليد ('+((e&&(e.message||e.code))||'خطأ')+') — حاولي ثانية.'; }
   $('genBtn').disabled=false;
 }
 function renderCur(){
