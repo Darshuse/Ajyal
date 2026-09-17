@@ -977,15 +977,29 @@ function countUp(id,from,to){const el=$(id),dur=550;const mine=(el._anim=(el._an
 function floatPoints(who,amt){const host=$('team'+who);const s=document.createElement('span');s.className='floatpts';s.textContent='+'+toAr(amt);host.appendChild(s);setTimeout(()=>s.remove(),900);}
 function sfxCheer(){initAudio();if(!actx||muted)return;[523,659,784,1047].forEach((f,i)=>tone(f,i*0.09,0.18,'sine',0.16));}
 let readAloud=true, arVoice=null;
-function pickArVoice(){try{const vs=speechSynthesis.getVoices();arVoice=vs.find(v=>/ar/i.test(v.lang))||arVoice;}catch(_){}}
-if('speechSynthesis' in window){pickArVoice();try{speechSynthesis.addEventListener('voiceschanged',pickArVoice);}catch(_){}}
+function pickArVoice(){try{const vs=speechSynthesis.getVoices()||[];arVoice=vs.find(v=>/^ar/i.test(v.lang))||vs.find(v=>/arab/i.test(v.name||''))||arVoice;}catch(_){}}
+if('speechSynthesis'in window){pickArVoice();try{speechSynthesis.addEventListener('voiceschanged',pickArVoice);}catch(_){}}
 function speakText(t){
-  if(muted||!readAloud||!('speechSynthesis'in window)||!t)return;
-  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(t));u.lang='ar-SA';if(arVoice)u.voice=arVoice;u.rate=.95;u.pitch=1.05;speechSynthesis.speak(u);}catch(_){}
+  if(muted||!readAloud||!('speechSynthesis'in window)||!t)return false;
+  try{
+    if(speechSynthesis.speaking||speechSynthesis.pending)speechSynthesis.cancel();
+    if(!arVoice)pickArVoice();
+    const u=new SpeechSynthesisUtterance(String(t));
+    u.lang=(arVoice&&arVoice.lang)||'ar-SA'; if(arVoice)u.voice=arVoice; u.rate=.95; u.pitch=1.05;
+    speechSynthesis.speak(u);
+    setTimeout(()=>{try{speechSynthesis.resume();}catch(_){}},90);
+    return true;
+  }catch(_){return false;}
 }
-function stopSpeak(){try{speechSynthesis.cancel();}catch(_){}}
-function speakQ(){const item=QUESTIONS[idx];if(!item)return;const L=['أ','ب','ج','د','هـ'];
-  const opts=item.options.map((o,i)=>`${L[i]}: ${o}`).join('، ');speakText(item.q+'. '+opts);}
+function stopSpeak(){try{if(speechSynthesis.speaking||speechSynthesis.pending)speechSynthesis.cancel();}catch(_){}}
+function speakQ(){
+  if(!('speechSynthesis'in window)){toast('المتصفح لا يدعم القراءة الصوتية');return;}
+  if(muted){toast('الصوت مكتوم — فعّله من زر 🔊 بالأعلى');return;}
+  const item=QUESTIONS[idx];if(!item)return;const L=['أ','ب','ج','د','هـ'];
+  const opts=item.options.map((o,i)=>`${L[i]}: ${o}`).join('، ');
+  const ok=speakText(item.q+'. '+opts);
+  if(ok&&!arVoice)toast('نُطق بصوت افتراضي — لأفضل نطق عربي ثبّت صوتًا عربيًا في الجهاز');
+}
 function celebrateKids(who){
   const el=$('celebrate');
   const defs=[MODE_DEFAULTS.kids.A,MODE_DEFAULTS.kids.B,'الفريق ١','الفريق ٢'];
