@@ -1056,7 +1056,7 @@ function celebrateKids(who){
    مفتوح على claude.ai (تطوير)؛ مقفول على النسخة العامة حتى يُفعّل كود الجهاز عبر الخادم.
    التفعيل: العميل يدفع InstaPay ويرسل كود جهازه، فيضيفه المالك إلى ACTIVE_CODES على Railway. */
 const INSTAPAY_NUM='01111145798';   // رقم InstaPay لاستقبال الدفع
-const WA_NUM='201111145798';        // واتساب لاستقبال إثبات التحويل (صيغة دولية بلا +)
+const WA_NUM='966541655870';        // واتساب لاستقبال إثبات التحويل (صيغة دولية بلا +)
 function devCode(){let c=load('sah_devcode','');if(!c){c='AJYAL-'+Math.random().toString(36).slice(2,8).toUpperCase();store('sah_devcode',c);}return c;}
 function schoolUnlocked(){ if(window.claude&&window.claude.use)return true; return load('sah_school','')==='1'; }
 function openSchool(){
