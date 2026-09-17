@@ -272,6 +272,18 @@
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
 
   canvas.confetti{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
+  .celebrate{position:absolute; inset:0; z-index:8; display:grid; place-items:center; pointer-events:none;
+    background:radial-gradient(circle at 50% 42%, color-mix(in srgb,var(--gold) 34%, transparent), transparent 62%)}
+  .celebrate-emoji{font-size:5rem; animation:celebPop .5s cubic-bezier(.2,1.4,.4,1)}
+  .celebrate-text{position:absolute; bottom:30%; font-family:"Baloo Bhaijaan 2","Rubik",sans-serif; font-weight:800;
+    font-size:2.6rem; color:var(--gold-deep); text-shadow:0 2px 0 #fff, 0 0 18px color-mix(in srgb,var(--gold) 60%, transparent);
+    animation:celebRise .55s ease-out}
+  .celebrate .star{position:absolute; left:50%; top:42%; font-size:1.7rem; animation:starFly .9s ease-out forwards}
+  @keyframes celebPop{0%{transform:scale(.2);opacity:0}60%{transform:scale(1.3)}100%{transform:scale(1)}}
+  @keyframes celebRise{0%{transform:translateY(24px);opacity:0}100%{transform:translateY(0);opacity:1}}
+  @keyframes starFly{0%{transform:translate(-50%,-50%) scale(.4);opacity:0}20%{opacity:1}
+    100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.2);opacity:0}}
+  @media (prefers-reduced-motion:reduce){.celebrate-emoji,.celebrate-text,.celebrate .star{animation:none}}
   .hidden{display:none!important}
   @media (max-width:400px){ h1.title{font-size:2.3rem} }
   @media (prefers-reduced-motion:reduce){ *{transition:none!important} .mbadge,.floatpts,.pts.bump{animation:none} }
@@ -311,6 +323,11 @@
         <button class="mode" data-mode="friends">
           <span class="ico">🤝</span>
           <span class="txt"><span class="t">أصدقاء / فرق حرّة</span><span class="d">فريقان بأي تشكيل</span></span>
+          <span class="check"></span>
+        </button>
+        <button class="mode" data-mode="kids">
+          <span class="ico">👶</span>
+          <span class="txt"><span class="t">وضع الأطفال</span><span class="d">أسئلة سهلة، بلا مؤقّت، واحتفال كبير بكل إجابة صحيحة 🎉</span></span>
           <span class="check"></span>
         </button>
       </div>
@@ -436,6 +453,7 @@
     <canvas class="confetti" id="confetti"></canvas>
   </section>
 
+  <div class="celebrate" id="celebrate" hidden><div class="celebrate-emoji">🎉</div><div class="celebrate-text">أحسنت!</div></div>
   <div class="toast" id="toast"></div>
   <div class="brand">جزء من تجربة <b>برّ</b> — لمّة العيلة ورعاية الأهل في مكان واحد</div>
 </div>
@@ -569,7 +587,7 @@ const BANK = {
   ],
 };
 const LEVELS=[{id:1,stars:'★☆☆',name:'مبتدئ'},{id:2,stars:'★★☆',name:'متوسط'},{id:3,stars:'★★★',name:'خبير'}];
-const MODE_DEFAULTS={gen:{A:'الكبار',B:'الصغار'},mixed:{A:'الفريق الذهبي',B:'الفريق الفيروزي'},friends:{A:'الفريق ١',B:'الفريق ٢'}};
+const MODE_DEFAULTS={gen:{A:'الكبار',B:'الصغار'},mixed:{A:'الفريق الذهبي',B:'الفريق الفيروزي'},friends:{A:'الفريق ١',B:'الفريق ٢'},kids:{A:'النجوم',B:'الأبطال'}};
 const CATCHUP_GAP=15, QPERGAME=6, T={gold:'#f6b83f',goldD:'#dd982a',mint:'#37d5c4',mintD:'#18b1a1'};
 
 let mode='gen', level=1, idx=0, score={A:0,B:0}, locked=false, timeLeft=0, timer=null,
@@ -744,6 +762,7 @@ function renderUGC(){
 }
 
 function buildQuestions(){
+  if(mode==='kids')return shuffle([...getPool(1)]).slice(0,QPERGAME);
   const pool=getPool(level);
   if(mode==='gen'){
     const E=shuffle(pool.filter(q=>q.cat==='elders')).slice(0,QPERGAME/2);
@@ -754,12 +773,12 @@ function buildQuestions(){
 }
 function startGame(){
   initAudio();
-  relaxed=$('relaxedChk').checked;
+  relaxed=$('relaxedChk').checked; if(mode==='kids')relaxed=true;
   TEAM={A:getName('A'),B:getName('B')};
   QUESTIONS=buildQuestions();idx=0;score={A:0,B:0};bestMoment={team:null,gained:0,q:''};lifelines={A:1,B:1};
   $('nameA').innerHTML=avA+' '+esc(TEAM.A);$('nameB').innerHTML=avB+' '+esc(TEAM.B);renderScore();goPass();
 }
-function replay(){relaxed=$('relaxedChk').checked;QUESTIONS=buildQuestions();idx=0;score={A:0,B:0};bestMoment={team:null,gained:0,q:''};lifelines={A:1,B:1};renderScore();goPass();}
+function replay(){relaxed=$('relaxedChk').checked;if(mode==='kids')relaxed=true;QUESTIONS=buildQuestions();idx=0;score={A:0,B:0};bestMoment={team:null,gained:0,q:''};lifelines={A:1,B:1};renderScore();goPass();}
 function getName(s){return ($('nameIn'+s).value.trim())||MODE_DEFAULTS[mode][s];}
 
 function answeringTeam(item){ return mode==='gen' ? (item.cat==='elders'?'A':'B') : (idx%2===0?'A':'B'); }
@@ -825,6 +844,7 @@ function reveal(picked){
     if(gained>bestMoment.gained)bestMoment={team:who,gained,q:item.q};
     renderTug();countUp('pts'+who,before,score[who]);floatPoints(who,gained);
     sfxOK();navigator.vibrate&&navigator.vibrate(35);
+    if(mode==='kids')celebrateKids();
     $('fact').innerHTML=`<b>+${toAr(gained)} نقطة${curMult>1?' (مضاعفة! 🔥)':''}</b> ${esc(item.fact)}`;
     finishReveal();
   }else{
@@ -893,6 +913,21 @@ function countUp(id,from,to){const el=$(id),dur=550;const mine=(el._anim=(el._an
     if(k<1)requestAnimationFrame(step);else el.textContent=toAr(to);}
   requestAnimationFrame(step);}
 function floatPoints(who,amt){const host=$('team'+who);const s=document.createElement('span');s.className='floatpts';s.textContent='+'+toAr(amt);host.appendChild(s);setTimeout(()=>s.remove(),900);}
+function sfxCheer(){initAudio();if(!actx||muted)return;[523,659,784,1047].forEach((f,i)=>tone(f,i*0.09,0.18,'sine',0.16));}
+function celebrateKids(){
+  const el=$('celebrate');const emo=['🎉','⭐','👏','🥳','🌟'],words=['أحسنت!','رائع!','برافو!','ممتاز!','يا بطل!'];
+  el.querySelector('.celebrate-emoji').textContent=emo[Math.random()*emo.length|0];
+  el.querySelector('.celebrate-text').textContent=words[Math.random()*words.length|0];
+  el.querySelectorAll('.star').forEach(s=>s.remove());
+  if(!matchMedia('(prefers-reduced-motion:reduce)').matches){
+    for(let i=0;i<10;i++){const s=document.createElement('span');s.className='star';s.textContent='⭐';
+      const a=Math.random()*6.28,d=90+Math.random()*130;
+      s.style.setProperty('--dx',(Math.cos(a)*d)+'px');s.style.setProperty('--dy',(Math.sin(a)*d)+'px');
+      el.appendChild(s);}
+  }
+  el.hidden=false;sfxCheer();navigator.vibrate&&navigator.vibrate([30,40,30,40,60]);
+  clearTimeout(el._t);el._t=setTimeout(()=>{el.hidden=true;},1400);
+}
 
 function endGame(){
   show('screenEnd');
