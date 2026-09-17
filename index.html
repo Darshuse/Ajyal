@@ -115,6 +115,12 @@
     background:color-mix(in srgb,var(--gold) 12%, var(--surface)); color:var(--ink); cursor:pointer;
     font-size:.92rem; font-weight:700; font-family:"Baloo Bhaijaan 2",sans-serif}
   .listenBtn:active{transform:scale(.96)}
+  .lockcard{text-align:center; background:var(--surface); border:1px solid var(--line); border-radius:20px;
+    padding:24px 18px; box-shadow:var(--shadow-sm)}
+  .lockemoji{font-size:2.6rem; line-height:1}
+  .locktitle{font-family:"Baloo Bhaijaan 2",sans-serif; margin:8px 0 8px; font-size:1.2rem}
+  .locktext{color:var(--muted); font-size:.9rem; line-height:1.75; margin:0 0 18px}
+  .lockcard .form-row{text-align:right; margin-bottom:12px}
 
   .level-row{display:grid; grid-template-columns:repeat(3,1fr); gap:9px}
   .lvl{border:1px solid var(--line); background:var(--surface); color:var(--ink);
@@ -405,6 +411,21 @@
     <div class="ugclist" id="ugcList"></div>
 
     <button class="btn ghost" style="margin-top:16px" onclick="toStart()">رجوع للقائمة</button>
+  </section>
+
+  <!-- PAYWALL (nursery mode is paid on the public build) -->
+  <section id="screenPaywall" class="pad hidden">
+    <p class="pick-label">وضع الروضة 🏫</p>
+    <div class="lockcard">
+      <div class="lockemoji">🔒</div>
+      <h3 class="locktitle">ميزة مدفوعة للحضانات</h3>
+      <p class="locktext">وضع الروضة يولّد أسئلة من منهجكم بالذكاء الاصطناعي، ويشغّل الأطفال بأسئلة صفّهم — باشتراك للحضانة/المعلّمة.</p>
+      <div class="form-row"><label>كود التفعيل</label>
+        <input class="inp" id="schoolCode" placeholder="AJYAL-KG-..." autocomplete="off" spellcheck="false"></div>
+      <button class="btn" onclick="activateSchool()">🔓 تفعيل بالكود</button>
+      <button class="btn ghost" style="margin-top:10px" onclick="goSubscribe()">💬 اشترك / تواصل معنا</button>
+      <button class="btn ghost" style="margin-top:10px" onclick="toStart()">رجوع</button>
+    </div>
   </section>
 
   <!-- SCHOOL (nursery curriculum → AI questions) -->
@@ -721,8 +742,8 @@ function rate(v){const arr=JSON.parse(load('sah_ratings','[]'));arr.push({v,mode
 
 /* ---- flow ---- */
 function toStart(){show('screenStart');}
-function show(id){['screenStart','screenAuthor','screenSchool','screenPass','screenPlay','screenEnd'].forEach(s=>$(s).classList.toggle('hidden',s!==id));
-  $('tugBar').hidden=(id==='screenStart'||id==='screenAuthor'||id==='screenSchool');}
+function show(id){['screenStart','screenAuthor','screenSchool','screenPaywall','screenPass','screenPlay','screenEnd'].forEach(s=>$(s).classList.toggle('hidden',s!==id));
+  $('tugBar').hidden=(id==='screenStart'||id==='screenAuthor'||id==='screenSchool'||id==='screenPaywall');}
 
 /* ==== Family question bank: shared via db when available, else local ==== */
 (function initDB(){
@@ -1024,7 +1045,20 @@ function celebrateKids(who){
 }
 
 /* ===== وضع الروضة: توليد أسئلة من المنهج بالذكاء الاصطناعي (claude.ai only) ===== */
-function openSchool(){renderCur();show('screenSchool');}
+/* ===== بوّابة الدفع لوضع الروضة (تُطبَّق على النسخة العامة Railway؛ مفتوحة على claude.ai للتطوير) =====
+   ملاحظة صدق: هذه بوّابة كود من طرف العميل (قابلة للتجاوز بمعرفة تقنية)، مناسبة كبداية ثقة مع الحضانات.
+   للحماية الفعلية لاحقًا يلزم تحقّق من خادم. */
+const SUBSCRIBE_URL='https://wa.me/'; // ← ضع رابط الاشتراك/التواصل (واتساب أو Lemon Squeezy)
+const SCHOOL_CODES=['AJYAL-KG-2026']; // ← أكواد التفعيل التي تعطيها للحضانة بعد الدفع (أضف ما تشاء)
+function schoolUnlocked(){ if(window.claude&&window.claude.use)return true; return load('sah_school','')==='1'; }
+function openSchool(){ if(schoolUnlocked()){renderCur();show('screenSchool');} else {const f=$('schoolCode');if(f)f.value='';show('screenPaywall');} }
+function activateSchool(){
+  const v=($('schoolCode').value||'').trim().toUpperCase();
+  if(v && SCHOOL_CODES.map(c=>c.toUpperCase()).indexOf(v)>=0){
+    store('sah_school','1'); toast('تم التفعيل ✅'); renderCur(); show('screenSchool');
+  } else { toast('كود التفعيل غير صحيح'); }
+}
+function goSubscribe(){ if(SUBSCRIBE_URL && SUBSCRIBE_URL!=='https://wa.me/'){window.open(SUBSCRIBE_URL,'_blank','noopener');} else {toast('لم يُضبط رابط الاشتراك بعد (SUBSCRIBE_URL)');} }
 function parseJSONLoose(t){
   if(!t)return null;
   let s=String(t).replace(/```json/gi,'').replace(/```/g,'').trim();
