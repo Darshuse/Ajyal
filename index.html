@@ -276,7 +276,16 @@
   .celebrate{position:absolute; inset:0; z-index:8; display:grid; place-items:center; pointer-events:none;
     background:radial-gradient(circle at 50% 42%, color-mix(in srgb,var(--gold) 34%, transparent), transparent 62%)}
   .celebrate[hidden]{display:none}
-  .celebrate-emoji{font-size:5rem; animation:celebPop .5s cubic-bezier(.2,1.4,.4,1)}
+  .mascot{width:120px; height:120px; animation:mascotJump .55s ease-in-out infinite}
+  .mascot svg{width:100%; height:100%; display:block; filter:drop-shadow(0 8px 10px rgba(120,60,25,.25))}
+  .mascot .pawL{animation:clapL .55s ease-in-out infinite}
+  .mascot .pawR{animation:clapR .55s ease-in-out infinite}
+  @keyframes mascotJump{0%,100%{transform:translateY(7px)}50%{transform:translateY(-15px)}}
+  @keyframes clapL{0%,100%{transform:translateX(0)}50%{transform:translateX(11px)}}
+  @keyframes clapR{0%,100%{transform:translateX(0)}50%{transform:translateX(-11px)}}
+  .celebrate .conf{position:absolute; left:50%; top:44%; width:10px; height:14px; border-radius:2px; animation:confFly 1s ease-out forwards}
+  @keyframes confFly{0%{transform:translate(-50%,-50%) scale(.5) rotate(0);opacity:0}20%{opacity:1}
+    100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(360deg);opacity:0}}
   .celebrate-text{position:absolute; bottom:30%; font-family:"Baloo Bhaijaan 2","Rubik",sans-serif; font-weight:800;
     font-size:2.6rem; color:var(--gold-deep); text-shadow:0 2px 0 #fff, 0 0 18px color-mix(in srgb,var(--gold) 60%, transparent);
     animation:celebRise .55s ease-out}
@@ -285,7 +294,7 @@
   @keyframes celebRise{0%{transform:translateY(24px);opacity:0}100%{transform:translateY(0);opacity:1}}
   @keyframes starFly{0%{transform:translate(-50%,-50%) scale(.4);opacity:0}20%{opacity:1}
     100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.2);opacity:0}}
-  @media (prefers-reduced-motion:reduce){.celebrate-emoji,.celebrate-text,.celebrate .star{animation:none}}
+  @media (prefers-reduced-motion:reduce){.celebrate-text,.celebrate .star,.celebrate .conf,.mascot,.mascot .pawL,.mascot .pawR{animation:none}}
   .hidden{display:none!important}
   @media (max-width:400px){ h1.title{font-size:2.3rem} }
   @media (prefers-reduced-motion:reduce){ *{transition:none!important} .mbadge,.floatpts,.pts.bump{animation:none} }
@@ -477,7 +486,10 @@
     <canvas class="confetti" id="confetti"></canvas>
   </section>
 
-  <div class="celebrate" id="celebrate" hidden><div class="celebrate-emoji">🎉</div><div class="celebrate-text">أحسنت!</div></div>
+  <div class="celebrate" id="celebrate" hidden>
+    <div class="mascot"><svg viewBox="0 0 120 120"><ellipse cx="48" cy="26" rx="9" ry="24" fill="#fff" stroke="#EAD9C4" stroke-width="2"/><ellipse cx="72" cy="26" rx="9" ry="24" fill="#fff" stroke="#EAD9C4" stroke-width="2"/><ellipse cx="48" cy="28" rx="4" ry="15" fill="#F7C0C8"/><ellipse cx="72" cy="28" rx="4" ry="15" fill="#F7C0C8"/><ellipse cx="60" cy="88" rx="26" ry="23" fill="#fff" stroke="#EAD9C4" stroke-width="2"/><circle cx="60" cy="58" r="26" fill="#fff" stroke="#EAD9C4" stroke-width="2"/><circle cx="47" cy="63" r="5" fill="#F7C0C8" opacity=".7"/><circle cx="73" cy="63" r="5" fill="#F7C0C8" opacity=".7"/><circle cx="52" cy="55" r="3.4" fill="#2A2622"/><circle cx="68" cy="55" r="3.4" fill="#2A2622"/><path d="M57 61h6l-3 3z" fill="#F0728A"/><path d="M54 66q6 6 12 0" stroke="#B5695A" stroke-width="2" fill="none" stroke-linecap="round"/><circle class="paw pawL" cx="35" cy="92" r="9" fill="#fff" stroke="#EAD9C4" stroke-width="2"/><circle class="paw pawR" cx="85" cy="92" r="9" fill="#fff" stroke="#EAD9C4" stroke-width="2"/></svg></div>
+    <div class="celebrate-text">برافو! إجابة صحيحة</div>
+  </div>
   <div class="toast" id="toast"></div>
   <div class="brand">جزء من تجربة <b>برّ</b> — لمّة العيلة ورعاية الأهل في مكان واحد</div>
 </div>
@@ -968,18 +980,21 @@ function countUp(id,from,to){const el=$(id),dur=550;const mine=(el._anim=(el._an
 function floatPoints(who,amt){const host=$('team'+who);const s=document.createElement('span');s.className='floatpts';s.textContent='+'+toAr(amt);host.appendChild(s);setTimeout(()=>s.remove(),900);}
 function sfxCheer(){initAudio();if(!actx||muted)return;[523,659,784,1047].forEach((f,i)=>tone(f,i*0.09,0.18,'sine',0.16));}
 function celebrateKids(){
-  const el=$('celebrate');const emo=['🎉','⭐','👏','🥳','🌟'],words=['أحسنت!','رائع!','برافو!','ممتاز!','يا بطل!'];
-  el.querySelector('.celebrate-emoji').textContent=emo[Math.random()*emo.length|0];
-  el.querySelector('.celebrate-text').textContent=words[Math.random()*words.length|0];
-  el.querySelectorAll('.star').forEach(s=>s.remove());
+  const el=$('celebrate');
+  el.querySelector('.celebrate-text').textContent='برافو! إجابة صحيحة';
+  el.querySelectorAll('.star,.conf').forEach(s=>s.remove());
   if(!matchMedia('(prefers-reduced-motion:reduce)').matches){
-    for(let i=0;i<10;i++){const s=document.createElement('span');s.className='star';s.textContent='⭐';
-      const a=Math.random()*6.28,d=90+Math.random()*130;
+    const cols=['#f6b83f','#37d5c4','#ff6b7d','#8A5CF6','#54e08a','#ffd98a'];
+    for(let i=0;i<18;i++){
+      const s=document.createElement('span');const isStar=Math.random()<0.35;
+      if(isStar){s.className='star';s.textContent='⭐';}else{s.className='conf';s.style.background=cols[i%cols.length];}
+      const a=Math.random()*6.283,d=90+Math.random()*150;
       s.style.setProperty('--dx',(Math.cos(a)*d)+'px');s.style.setProperty('--dy',(Math.sin(a)*d)+'px');
-      el.appendChild(s);}
+      el.appendChild(s);
+    }
   }
   el.hidden=false;sfxCheer();navigator.vibrate&&navigator.vibrate([30,40,30,40,60]);
-  clearTimeout(el._t);el._t=setTimeout(()=>{el.hidden=true;},1400);
+  clearTimeout(el._t);el._t=setTimeout(()=>{el.hidden=true;},1500);
 }
 
 /* ===== وضع الروضة: توليد أسئلة من المنهج بالذكاء الاصطناعي (claude.ai only) ===== */
