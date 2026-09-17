@@ -121,6 +121,9 @@
   .locktitle{font-family:"Baloo Bhaijaan 2",sans-serif; margin:8px 0 8px; font-size:1.2rem}
   .locktext{color:var(--muted); font-size:.9rem; line-height:1.75; margin:0 0 18px}
   .lockcard .form-row{text-align:right; margin-bottom:12px}
+  .paysteps{text-align:right; margin:0 0 16px; padding-inline-start:18px; color:var(--ink); font-size:.9rem; line-height:2.05}
+  .paynum{font-weight:800; font-size:1.18rem; letter-spacing:1px; color:var(--gold-deep); direction:ltr; display:inline-block; margin-top:2px}
+  .devcode{font-weight:800; color:var(--gold-deep); direction:ltr; display:inline-block; background:var(--surface2); padding:2px 9px; border-radius:8px; margin-top:2px}
 
   .level-row{display:grid; grid-template-columns:repeat(3,1fr); gap:9px}
   .lvl{border:1px solid var(--line); background:var(--surface); color:var(--ink);
@@ -413,17 +416,21 @@
     <button class="btn ghost" style="margin-top:16px" onclick="toStart()">رجوع للقائمة</button>
   </section>
 
-  <!-- PAYWALL (nursery mode is paid on the public build) -->
+  <!-- PAYWALL (nursery mode is paid on the public build — InstaPay + server verify) -->
   <section id="screenPaywall" class="pad hidden">
     <p class="pick-label">وضع الروضة 🏫</p>
     <div class="lockcard">
       <div class="lockemoji">🔒</div>
-      <h3 class="locktitle">ميزة مدفوعة للحضانات</h3>
-      <p class="locktext">وضع الروضة يولّد أسئلة من منهجكم بالذكاء الاصطناعي، ويشغّل الأطفال بأسئلة صفّهم — باشتراك للحضانة/المعلّمة.</p>
-      <div class="form-row"><label>كود التفعيل</label>
-        <input class="inp" id="schoolCode" placeholder="AJYAL-KG-..." autocomplete="off" spellcheck="false"></div>
-      <button class="btn" onclick="activateSchool()">🔓 تفعيل بالكود</button>
-      <button class="btn ghost" style="margin-top:10px" onclick="goSubscribe()">💬 اشترك / تواصل معنا</button>
+      <h3 class="locktitle">اشتراك الحضانات</h3>
+      <p class="locktext">وضع الروضة يولّد أسئلة من منهجكم ويشغّل الأطفال بأسئلة صفّهم. للتفعيل:</p>
+      <ol class="paysteps">
+        <li>حوّل قيمة الاشتراك عبر <b>InstaPay</b> إلى الرقم:<br><span class="paynum" id="instaNum">01111145798</span></li>
+        <li>أرسل رسالة/صورة التحويل على واتساب مع <b>كود جهازك</b>:<br>
+          <span class="devcode" id="devCode">—</span> <button class="minibtn" onclick="copyDev()">نسخ</button></li>
+        <li>بعد تفعيل المالك اضغط <b>«تحقّقت من الدفع»</b>.</li>
+      </ol>
+      <button class="btn" onclick="goSubscribe()">📲 أرسل إثبات الدفع (واتساب)</button>
+      <button class="btn ghost" id="checkBtn" style="margin-top:10px" onclick="checkActivation()">✅ تحقّقت من الدفع — فعّل</button>
       <button class="btn ghost" style="margin-top:10px" onclick="toStart()">رجوع</button>
     </div>
   </section>
@@ -1045,20 +1052,32 @@ function celebrateKids(who){
 }
 
 /* ===== وضع الروضة: توليد أسئلة من المنهج بالذكاء الاصطناعي (claude.ai only) ===== */
-/* ===== بوّابة الدفع لوضع الروضة (تُطبَّق على النسخة العامة Railway؛ مفتوحة على claude.ai للتطوير) =====
-   ملاحظة صدق: هذه بوّابة كود من طرف العميل (قابلة للتجاوز بمعرفة تقنية)، مناسبة كبداية ثقة مع الحضانات.
-   للحماية الفعلية لاحقًا يلزم تحقّق من خادم. */
-const SUBSCRIBE_URL='https://wa.me/'; // ← ضع رابط الاشتراك/التواصل (واتساب أو Lemon Squeezy)
-const SCHOOL_CODES=['AJYAL-KG-2026']; // ← أكواد التفعيل التي تعطيها للحضانة بعد الدفع (أضف ما تشاء)
+/* ===== اشتراك «وضع الروضة» — دفع InstaPay + تحقّق من الخادم =====
+   مفتوح على claude.ai (تطوير)؛ مقفول على النسخة العامة حتى يُفعّل كود الجهاز عبر الخادم.
+   التفعيل: العميل يدفع InstaPay ويرسل كود جهازه، فيضيفه المالك إلى ACTIVE_CODES على Railway. */
+const INSTAPAY_NUM='01111145798';   // رقم InstaPay لاستقبال الدفع
+const WA_NUM='201111145798';        // واتساب لاستقبال إثبات التحويل (صيغة دولية بلا +)
+function devCode(){let c=load('sah_devcode','');if(!c){c='AJYAL-'+Math.random().toString(36).slice(2,8).toUpperCase();store('sah_devcode',c);}return c;}
 function schoolUnlocked(){ if(window.claude&&window.claude.use)return true; return load('sah_school','')==='1'; }
-function openSchool(){ if(schoolUnlocked()){renderCur();show('screenSchool');} else {const f=$('schoolCode');if(f)f.value='';show('screenPaywall');} }
-function activateSchool(){
-  const v=($('schoolCode').value||'').trim().toUpperCase();
-  if(v && SCHOOL_CODES.map(c=>c.toUpperCase()).indexOf(v)>=0){
-    store('sah_school','1'); toast('تم التفعيل ✅'); renderCur(); show('screenSchool');
-  } else { toast('كود التفعيل غير صحيح'); }
+function openSchool(){
+  if(schoolUnlocked()){renderCur();show('screenSchool');return;}
+  $('devCode').textContent=devCode(); $('instaNum').textContent=INSTAPAY_NUM; show('screenPaywall');
 }
-function goSubscribe(){ if(SUBSCRIBE_URL && SUBSCRIBE_URL!=='https://wa.me/'){window.open(SUBSCRIBE_URL,'_blank','noopener');} else {toast('لم يُضبط رابط الاشتراك بعد (SUBSCRIBE_URL)');} }
+async function checkActivation(){
+  const code=devCode();const btn=$('checkBtn');if(btn)btn.disabled=true;
+  try{
+    const r=await fetch('/api/verify?code='+encodeURIComponent(code),{cache:'no-store'});
+    const j=await r.json();
+    if(j&&j.active){store('sah_school','1');toast('تم التفعيل ✅');renderCur();show('screenSchool');}
+    else toast('لم يُفعّل بعد — بعد الدفع أرسل الرسالة وانتظر التفعيل ثم اضغط «تحقّق»');
+  }catch(e){toast('تعذّر الاتصال بالخادم — تأكّد من الإنترنت وحاول ثانية');}
+  if(btn)btn.disabled=false;
+}
+function goSubscribe(){
+  const msg=encodeURIComponent('دفعت اشتراك «وضع الروضة» في أجيال عبر InstaPay إلى '+INSTAPAY_NUM+'. كود جهازي: '+devCode());
+  window.open('https://wa.me/'+WA_NUM+'?text='+msg,'_blank','noopener');
+}
+function copyDev(){try{navigator.clipboard.writeText(devCode());toast('نُسخ الكود ✅');}catch(_){}}
 function parseJSONLoose(t){
   if(!t)return null;
   let s=String(t).replace(/```json/gi,'').replace(/```/g,'').trim();
