@@ -275,6 +275,7 @@
   canvas.confetti{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
   .celebrate{position:absolute; inset:0; z-index:8; display:grid; place-items:center; pointer-events:none;
     background:radial-gradient(circle at 50% 42%, color-mix(in srgb,var(--gold) 34%, transparent), transparent 62%)}
+  .celebrate[hidden]{display:none}
   .celebrate-emoji{font-size:5rem; animation:celebPop .5s cubic-bezier(.2,1.4,.4,1)}
   .celebrate-text{position:absolute; bottom:30%; font-family:"Baloo Bhaijaan 2","Rubik",sans-serif; font-weight:800;
     font-size:2.6rem; color:var(--gold-deep); text-shadow:0 2px 0 #fff, 0 0 18px color-mix(in srgb,var(--gold) 60%, transparent);
@@ -329,6 +330,11 @@
         <button class="mode" data-mode="kids">
           <span class="ico">👶</span>
           <span class="txt"><span class="t">وضع الأطفال</span><span class="d">أسئلة سهلة، بلا مؤقّت، واحتفال كبير بكل إجابة صحيحة 🎉</span></span>
+          <span class="check"></span>
+        </button>
+        <button class="mode" data-mode="ent">
+          <span class="ico">🎬</span>
+          <span class="txt"><span class="t">وضع الترفيه</span><span class="d">للجمهور العام: أفلام ومسلسلات وفوازير 🧩</span></span>
           <span class="check"></span>
         </button>
       </div>
@@ -604,8 +610,34 @@ const BANK = {
     {cat:'kids',round:'رياضيات ⬡',q:'كم ضلعًا للشكل السداسي؟',options:['٥','٦','٧','٨'],answer:1,fact:'ستة أضلاع.'},
   ],
 };
+const ENT=[
+ {round:'أفلام 🎬',q:'من الفنان الملقّب بـ«الزعيم» في السينما العربية؟',options:['نور الشريف','عادل إمام','أحمد زكي','محمود ياسين'],answer:1,fact:'عادل إمام من أشهر نجوم الكوميديا العربية.'},
+ {round:'أفلام 🎬',q:'من الملقّبة بـ«سيدة الشاشة العربية»؟',options:['شادية','فاتن حمامة','سعاد حسني','ماجدة'],answer:1,fact:'فاتن حمامة رمز السينما المصرية.'},
+ {round:'أفلام 🎬',q:'شخصية «غوّار الطوشة» جسّدها الفنان؟',options:['نهاد قلعي','دريد لحّام','ياسر العظمة','رشيد عساف'],answer:1,fact:'دريد لحّام (سوريا).'},
+ {round:'أفلام 🎬',q:'شخصية «اللمبي» الكوميدية من بطولة؟',options:['محمد هنيدي','محمد سعد','أحمد حلمي','هاني رمزي'],answer:1,fact:'محمد سعد.'},
+ {round:'أفلام 🎬',q:'في أي مناسبة يُعرض موسم أفلام سينمائي كبير سنويًا؟',options:['رأس السنة','عيد الفطر','المولد','يوم الجمعة'],answer:1,fact:'موسم أفلام العيد تقليد راسخ.'},
+ {round:'أفلام 🎬',q:'الفنان الكويتي «عبد الحسين عبد الرضا» اشتهر في؟',options:['الغناء','الكوميديا والمسرح','الإخراج','الرياضة'],answer:1,fact:'من رموز الكوميديا الخليجية.'},
+ {round:'أفلام 🎬',q:'«أحمد زكي» لُقّب بـ؟',options:['العندليب','النمر الأسود','الزعيم','الأسمر'],answer:1,fact:'لُقّب بالنمر الأسود.'},
+ {round:'أفلام 🎬',q:'«إسماعيل ياسين» اشتهر بأفلام؟',options:['الرعب','الكوميديا','الحركة','الوثائقية'],answer:1,fact:'أشهر كوميديان في زمنه.'},
+ {round:'مسلسلات 📺',q:'مسلسل شامي شهير عن حارة دمشقية قديمة؟',options:['باب الحارة','الخوالي','أيام شامية','ليالي الصالحية'],answer:0,fact:'باب الحارة من أشهر الأعمال الشامية.'},
+ {round:'مسلسلات 📺',q:'شخصية الجاسوس «رأفت الهجان» جسّدها؟',options:['محمود عبد العزيز','نور الشريف','يحيى الفخراني','جميل راتب'],answer:0,fact:'محمود عبد العزيز.'},
+ {round:'مسلسلات 📺',q:'مسلسل «ليالي الحلمية» من تأليف؟',options:['وحيد حامد','أسامة أنور عكاشة','يسري الجندي','محفوظ عبد الرحمن'],answer:1,fact:'أسامة أنور عكاشة.'},
+ {round:'مسلسلات 📺',q:'في أي شهر تُعرض معظم المسلسلات العربية الجديدة؟',options:['محرّم','رمضان','شعبان','شوال'],answer:1,fact:'رمضان موسم الدراما العربية.'},
+ {round:'مسلسلات 📺',q:'سلسلة «مرايا» النقدية من بطولة؟',options:['دريد لحّام','ياسر العظمة','أيمن زيدان','باسم ياخور'],answer:1,fact:'ياسر العظمة.'},
+ {round:'مسلسلات 📺',q:'«الحاج متولي» جسّد دوره الفنان؟',options:['نور الشريف','عزت العلايلي','حسين فهمي','محمود مرسي'],answer:0,fact:'نور الشريف.'},
+ {round:'مسلسلات 📺',q:'مسلسل تاريخي شهير عن الخليفة الثاني بعنوان؟',options:['عمر','القعقاع','الحسن والحسين','صقر قريش'],answer:0,fact:'مسلسل «عمر».'},
+ {round:'مسلسلات 📺',q:'«التغريبة الفلسطينية» تتناول قضية؟',options:['العراق','فلسطين','لبنان','الجزائر'],answer:1,fact:'تتناول النكبة الفلسطينية.'},
+ {round:'فوازير 🧩',q:'شيء كلما أخذت منه كَبُر، ما هو؟',options:['البالون','الحفرة','النار','الثلج'],answer:1,fact:'الحفرة تكبر كلما أخذت منها.'},
+ {round:'فوازير 🧩',q:'له أوراق وليس نباتًا، وله جلد وليس حيوانًا، ما هو؟',options:['الشجرة','الكتاب','الحقيبة','الباب'],answer:1,fact:'الكتاب.'},
+ {round:'فوازير 🧩',q:'يمشي بلا رجلين ويبكي بلا عينين، ما هو؟',options:['الريح','السحاب','النهر','الظل'],answer:1,fact:'السحاب (الغيم).'},
+ {round:'فوازير 🧩',q:'بيت لا نوافذ له ولا أبواب وساكنه أصفر، ما هو؟',options:['الكهف','البيضة','الصندوق','الجرّة'],answer:1,fact:'البيضة.'},
+ {round:'فوازير 🧩',q:'شيء يكتب ولا يقرأ، ما هو؟',options:['الكتاب','القلم','الورقة','النظارة'],answer:1,fact:'القلم.'},
+ {round:'فوازير 🧩',q:'أخضر في الأرض، أسود في السوق، أحمر في الكوب، ما هو؟',options:['البُنّ','الشاي','النعناع','التمر'],answer:1,fact:'الشاي.'},
+ {round:'فوازير 🧩',q:'يسمع بلا أذن ويتكلّم بلا لسان، ما هو؟',options:['الراديو','الهاتف','الببغاء','الطبل'],answer:1,fact:'الهاتف.'},
+ {round:'فوازير 🧩',q:'كلما زاد نقص، ما هو؟',options:['المال','العمر','الوزن','الوقت'],answer:1,fact:'العمر.'},
+];
 const LEVELS=[{id:1,stars:'★☆☆',name:'مبتدئ'},{id:2,stars:'★★☆',name:'متوسط'},{id:3,stars:'★★★',name:'خبير'}];
-const MODE_DEFAULTS={gen:{A:'الكبار',B:'الصغار'},mixed:{A:'الفريق الذهبي',B:'الفريق الفيروزي'},friends:{A:'الفريق ١',B:'الفريق ٢'},kids:{A:'النجوم',B:'الأبطال'}};
+const MODE_DEFAULTS={gen:{A:'الكبار',B:'الصغار'},mixed:{A:'الفريق الذهبي',B:'الفريق الفيروزي'},friends:{A:'الفريق ١',B:'الفريق ٢'},kids:{A:'النجوم',B:'الأبطال'},ent:{A:'الفريق ١',B:'الفريق ٢'}};
 const CATCHUP_GAP=15, QPERGAME=6, T={gold:'#f6b83f',goldD:'#dd982a',mint:'#37d5c4',mintD:'#18b1a1'};
 
 let mode='gen', level=1, idx=0, score={A:0,B:0}, locked=false, timeLeft=0, timer=null,
@@ -781,6 +813,7 @@ function renderUGC(){
 
 function buildQuestions(){
   if(mode==='kids')return shuffle([...getPool(1)]).slice(0,QPERGAME);
+  if(mode==='ent')return shuffle([...ENT]).slice(0,QPERGAME);
   const pool=getPool(level);
   if(mode==='gen'){
     const E=shuffle(pool.filter(q=>q.cat==='elders')).slice(0,QPERGAME/2);
