@@ -92,22 +92,29 @@
   .pick-label{font-weight:700; font-size:.85rem; color:var(--muted); margin:0 0 10px; letter-spacing:.03em}
   .block{margin-bottom:20px}
 
-  .mode-grid{display:grid; gap:9px}
-  .mode{display:flex; align-items:center; gap:12px; text-align:right; width:100%;
+  .group-label{font-size:.8rem; color:var(--muted); font-weight:700; margin:0 2px 7px;
+    font-family:"Baloo Bhaijaan 2",sans-serif}
+  .group-label.mt{margin-top:14px}
+  .mode-row{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .mode{display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center; width:100%;
     border:1px solid var(--line); background:var(--surface); color:var(--ink);
-    border-radius:18px; padding:13px 15px; cursor:pointer; position:relative; box-shadow:var(--shadow-sm);
+    border-radius:16px; padding:12px 10px 11px; cursor:pointer; position:relative; box-shadow:var(--shadow-sm);
     transition:border-color .2s, background .2s, transform .12s, box-shadow .2s}
   .mode:hover{transform:translateY(-1px)}
   .mode.sel{border-color:var(--gold); background:color-mix(in srgb,var(--gold) 12%, var(--surface2)); box-shadow:0 0 0 1px var(--gold) inset}
-  .mode .ico{font-size:1.7rem; line-height:1; flex-shrink:0}
-  .mode .txt .t{font-weight:700; font-size:1.02rem; font-family:"Baloo Bhaijaan 2",sans-serif}
-  .mode .txt .d{color:var(--muted); font-size:.8rem; margin-top:2px; line-height:1.5}
-  .mode .rec{position:absolute; top:-9px; left:14px; background:var(--mint); color:#0c2b28;
-    font-size:.66rem; font-weight:700; padding:2px 9px; border-radius:999px}
-  .mode .check{margin-inline-start:auto; width:22px; height:22px; border-radius:50%; border:2px solid var(--line);
-    flex-shrink:0; display:grid; place-items:center; font-size:.8rem; font-weight:800}
+  .mode .ico{font-size:1.85rem; line-height:1; flex-shrink:0}
+  .mode .txt .t{font-weight:700; font-size:.92rem; font-family:"Baloo Bhaijaan 2",sans-serif; line-height:1.3}
+  .mode .txt .d{display:none}
+  .mode .rec{position:absolute; top:-8px; inset-inline-end:8px; background:var(--mint); color:#0c2b28;
+    font-size:.62rem; font-weight:700; padding:2px 8px; border-radius:999px}
+  .mode .check{position:absolute; top:7px; inset-inline-start:7px; width:18px; height:18px; border-radius:50%; border:2px solid var(--line);
+    display:grid; place-items:center; font-size:.66rem; font-weight:800; background:var(--surface)}
   .mode.sel .check{background:var(--gold); border-color:var(--gold)}
   .mode.sel .check::after{content:'✓'; color:#241748}
+  .qcard{position:relative}
+  .speakBtn{position:absolute; top:8px; inset-inline-start:8px; width:34px; height:34px; border-radius:50%;
+    border:1px solid var(--line); background:var(--surface2); cursor:pointer; font-size:1rem; display:grid; place-items:center}
+  .speakBtn:active{transform:scale(.92)}
 
   .level-row{display:grid; grid-template-columns:repeat(3,1fr); gap:9px}
   .lvl{border:1px solid var(--line); background:var(--surface); color:var(--ink);
@@ -319,33 +326,19 @@
     <p class="subtitle">جهّزوا اللعبة: اختاروا الوضع والمستوى وسمّوا فرقكم.</p>
 
     <div class="block">
-      <p class="pick-label">١ · وضع الفرق</p>
-      <div class="mode-grid" id="modeGrid">
-        <button class="mode" data-mode="mixed">
-          <span class="rec">الأفضل للمّة</span><span class="ico">👨‍👩‍👧‍👦</span>
-          <span class="txt"><span class="t">فرق مختلطة</span><span class="d">كبار وصغار في كل فريق — تعاون داخلي ومنافسة بين الفريقين</span></span>
-          <span class="check"></span>
-        </button>
-        <button class="mode sel" data-mode="gen">
-          <span class="ico">👳🧒</span>
-          <span class="txt"><span class="t">كبار ضد صغار</span><span class="d">منافسة الأجيال — كل جيل يلمع في جولته</span></span>
-          <span class="check"></span>
-        </button>
-        <button class="mode" data-mode="friends">
-          <span class="ico">🤝</span>
-          <span class="txt"><span class="t">أصدقاء / فرق حرّة</span><span class="d">فريقان بأي تشكيل</span></span>
-          <span class="check"></span>
-        </button>
-        <button class="mode" data-mode="kids">
-          <span class="ico">👶</span>
-          <span class="txt"><span class="t">وضع الأطفال</span><span class="d">أسئلة سهلة، بلا مؤقّت، واحتفال كبير بكل إجابة صحيحة 🎉</span></span>
-          <span class="check"></span>
-        </button>
-        <button class="mode" data-mode="ent">
-          <span class="ico">🎬</span>
-          <span class="txt"><span class="t">وضع الترفيه</span><span class="d">للجمهور العام: أفلام ومسلسلات وفوازير 🧩</span></span>
-          <span class="check"></span>
-        </button>
+      <p class="pick-label">١ · وضع اللعب</p>
+      <div id="modeGrid">
+        <p class="group-label">👨‍👩‍👧‍👦 أوضاع العائلة</p>
+        <div class="mode-row">
+          <button class="mode" data-mode="mixed"><span class="rec">الأفضل</span><span class="ico">👨‍👩‍👧‍👦</span><span class="txt"><span class="t">فرق مختلطة</span></span><span class="check"></span></button>
+          <button class="mode sel" data-mode="gen"><span class="ico">👳🧒</span><span class="txt"><span class="t">كبار ضد صغار</span></span><span class="check"></span></button>
+          <button class="mode" data-mode="friends"><span class="ico">🤝</span><span class="txt"><span class="t">أصدقاء / فرق حرّة</span></span><span class="check"></span></button>
+        </div>
+        <p class="group-label mt">✨ أوضاع خاصة</p>
+        <div class="mode-row">
+          <button class="mode" data-mode="kids"><span class="ico">👶</span><span class="txt"><span class="t">وضع الأطفال</span></span><span class="check"></span></button>
+          <button class="mode" data-mode="ent"><span class="ico">🎬</span><span class="txt"><span class="t">وضع الترفيه</span></span><span class="check"></span></button>
+        </div>
       </div>
     </div>
 
@@ -457,6 +450,7 @@
       <span class="ring-num" id="ringNum">١٥</span>
     </div>
     <div class="qcard">
+      <button class="speakBtn" id="speakBtn" onclick="speakQ()" aria-label="اقرأ السؤال" style="display:none">🔊</button>
       <p class="qcat" id="qcat">أمثال وحِكَم شعبية</p>
       <p class="question" id="question">…</p>
       <p class="qhint">اختر الإجابة الصحيحة</p>
@@ -881,6 +875,9 @@ function loadQ(){
     b.querySelector('.optlt').textContent=letters[i]||'';b.querySelector('.opttx').textContent=opt;
     b.onclick=()=>choose(i);box.appendChild(b);});
   const canLife=lifelines[who]>0;$('lifeBtn').hidden=!canLife;$('lifeN').textContent=canLife?`(${toAr(lifelines[who])})`:'';
+  const kidMode=(mode==='kids'||mode==='curriculum');
+  $('speakBtn').style.display=kidMode?'grid':'none';
+  stopSpeak(); if(kidMode&&readAloud) setTimeout(speakQ,300);
   startTimer(who);
 }
 function startTimer(who){
@@ -909,7 +906,7 @@ function reveal(picked){
     if(gained>bestMoment.gained)bestMoment={team:who,gained,q:item.q};
     renderTug();countUp('pts'+who,before,score[who]);floatPoints(who,gained);
     sfxOK();navigator.vibrate&&navigator.vibrate(35);
-    if(mode==='kids'||mode==='curriculum')celebrateKids();
+    if(mode==='kids'||mode==='curriculum')celebrateKids(who);
     $('fact').innerHTML=`<b>+${toAr(gained)} نقطة${curMult>1?' (مضاعفة! 🔥)':''}</b> ${esc(item.fact)}`;
     finishReveal();
   }else{
@@ -979,9 +976,22 @@ function countUp(id,from,to){const el=$(id),dur=550;const mine=(el._anim=(el._an
   requestAnimationFrame(step);}
 function floatPoints(who,amt){const host=$('team'+who);const s=document.createElement('span');s.className='floatpts';s.textContent='+'+toAr(amt);host.appendChild(s);setTimeout(()=>s.remove(),900);}
 function sfxCheer(){initAudio();if(!actx||muted)return;[523,659,784,1047].forEach((f,i)=>tone(f,i*0.09,0.18,'sine',0.16));}
-function celebrateKids(){
+let readAloud=true, arVoice=null;
+function pickArVoice(){try{const vs=speechSynthesis.getVoices();arVoice=vs.find(v=>/ar/i.test(v.lang))||arVoice;}catch(_){}}
+if('speechSynthesis' in window){pickArVoice();try{speechSynthesis.addEventListener('voiceschanged',pickArVoice);}catch(_){}}
+function speakText(t){
+  if(muted||!readAloud||!('speechSynthesis'in window)||!t)return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(t));u.lang='ar-SA';if(arVoice)u.voice=arVoice;u.rate=.95;u.pitch=1.05;speechSynthesis.speak(u);}catch(_){}
+}
+function stopSpeak(){try{speechSynthesis.cancel();}catch(_){}}
+function speakQ(){const item=QUESTIONS[idx];if(!item)return;const L=['أ','ب','ج','د','هـ'];
+  const opts=item.options.map((o,i)=>`${L[i]}: ${o}`).join('، ');speakText(item.q+'. '+opts);}
+function celebrateKids(who){
   const el=$('celebrate');
-  el.querySelector('.celebrate-text').textContent='برافو! إجابة صحيحة';
+  const defs=[MODE_DEFAULTS.kids.A,MODE_DEFAULTS.kids.B,'الفريق ١','الفريق ٢'];
+  const nm=who&&TEAM[who]?String(TEAM[who]).trim():'';
+  const personal=nm&&defs.indexOf(nm)<0;const first=personal?nm.split(' ')[0]:'';
+  el.querySelector('.celebrate-text').textContent=personal?`برافو يا ${first}! 🎉`:'برافو! إجابة صحيحة';
   el.querySelectorAll('.star,.conf').forEach(s=>s.remove());
   if(!matchMedia('(prefers-reduced-motion:reduce)').matches){
     const cols=['#f6b83f','#37d5c4','#ff6b7d','#8A5CF6','#54e08a','#ffd98a'];
@@ -993,7 +1003,7 @@ function celebrateKids(){
       el.appendChild(s);
     }
   }
-  el.hidden=false;sfxCheer();navigator.vibrate&&navigator.vibrate([30,40,30,40,60]);
+  el.hidden=false;sfxCheer();speakText(personal?`برافو يا ${first}`:'برافو، إجابة صحيحة');navigator.vibrate&&navigator.vibrate([30,40,30,40,60]);
   clearTimeout(el._t);el._t=setTimeout(()=>{el.hidden=true;},1500);
 }
 
