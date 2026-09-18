@@ -98,17 +98,32 @@ async function ttsAzure(text) {
   if (!r.ok) throw new Error('azure ' + r.status);
   return Buffer.from(await r.arrayBuffer());
 }
+async function ttsEleven(text) {
+  const KEY = process.env.ELEVENLABS_KEY;
+  const voice = process.env.ELEVENLABS_VOICE || 'EXAVITQu4vr4xnSDxMaL';
+  const model = process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2';
+  const r = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voice, {
+    method: 'POST',
+    headers: { 'xi-api-key': KEY, 'content-type': 'application/json', 'accept': 'audio/mpeg' },
+    body: JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.5, similarity_boost: 0.75 } })
+  });
+  if (!r.ok) throw new Error('eleven ' + r.status + ' ' + (await r.text()).slice(0, 120));
+  return Buffer.from(await r.arrayBuffer());
+}
+function ttsProvider() {
+  return process.env.AZURE_TTS_KEY ? 'azure' : (process.env.GOOGLE_TTS_KEY ? 'google' : (process.env.ELEVENLABS_KEY ? 'eleven' : null));
+}
 async function handleTTS(req, res, u) {
   const code = u.searchParams.get('code'), text = String(u.searchParams.get('text') || '').slice(0, 600);
   if (!isActive(code)) return sendJSON(res, 402, { error: 'not_active' });
   if (!text) return sendJSON(res, 400, { error: 'no_text' });
-  const provider = process.env.AZURE_TTS_KEY ? 'azure' : (process.env.GOOGLE_TTS_KEY ? 'google' : null);
+  const provider = ttsProvider();
   if (!provider) return sendJSON(res, 501, { error: 'no_tts' });
   const key = provider + '::' + text;
   let buf = ttsCacheGet(key);
   if (!buf) {
     if (!rateOk(code, 'tts', MAX_TTS)) return sendJSON(res, 429, { error: 'rate_limited' });
-    try { buf = provider === 'azure' ? await ttsAzure(text) : await ttsGoogle(text); ttsCacheSet(key, buf); }
+    try { buf = provider === 'azure' ? await ttsAzure(text) : provider === 'google' ? await ttsGoogle(text) : await ttsEleven(text); ttsCacheSet(key, buf); }
     catch (e) { return sendJSON(res, 502, { error: 'tts_failed', detail: String(e && e.message || e).slice(0, 200) }); }
   }
   res.writeHead(200, { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=86400' });
@@ -123,7 +138,7 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, 200, { active: isActive(code) });
     }
     if (u.pathname === '/api/health') {
-      return sendJSON(res, 200, { ok: true, activeCount: activeSet().size, gen: !!process.env.ANTHROPIC_API_KEY, tts: process.env.AZURE_TTS_KEY ? 'azure' : (process.env.GOOGLE_TTS_KEY ? 'google' : false) });
+      return sendJSON(res, 200, { ok: true, activeCount: activeSet().size, gen: !!process.env.ANTHROPIC_API_KEY, tts: ttsProvider() || false });
     }
     if (u.pathname === '/api/generate' && req.method === 'POST') return await handleGenerate(req, res);
     if (u.pathname === '/api/tts') return await handleTTS(req, res, u);
