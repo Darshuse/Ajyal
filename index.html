@@ -768,6 +768,7 @@ function renderStreak(){const c=$('streakChip');if(!c)return;if(streak>=2){c.cla
 function bumpStreak(good){if(good){streak++;if(streak>bestStreak)bestStreak=streak;}else streak=0;renderStreak();}
 function sfxStreak(){initAudio();if(!actx||muted)return;[523,659,784,1047,1319].forEach((f,i)=>tone(f,i*0.07,0.2,'sine',0.16));}
 function track(name,extra){ if(window.claude&&window.claude.use)return; try{fetch('/api/event',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name,mode,extra})}).catch(()=>{});}catch(_){} }
+function submitScore(){ if(window.claude&&window.claude.use)return; const a=score.A,b=score.B; const win=a>b?TEAM.A:(b>a?TEAM.B:'تعادل'); try{fetch('/api/score',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:win,score:Math.max(a,b),mode,streak:bestStreak})}).catch(()=>{});}catch(_){} }
 function reportQ(){const it=QUESTIONS[idx];const arr=JSON.parse(load('sah_reports','[]'));arr.push({level,q:it.q,ts:Date.now()});store('sah_reports',JSON.stringify(arr));logFeedback({type:'report',level,q:it.q});toast('شكرًا 🙏 سجّلنا ملاحظتكم عن السؤال');}
 function rate(v){const arr=JSON.parse(load('sah_ratings','[]'));arr.push({v,mode,level,ts:Date.now()});store('sah_ratings',JSON.stringify(arr));
   logFeedback({type:'rating',v,mode,level});
@@ -1212,7 +1213,7 @@ function endGame(){
   if(bestStreak>=3)mvpHTML+=(mvpHTML?'<br>':'')+`🔥 أطول متتالية: <b>${toAr(bestStreak)}</b> إجابات صحيحة على التوالي`;
   $('mvp').innerHTML=mvpHTML;$('mvp').hidden=!mvpHTML;
   logFeedback({type:'result',mode,level,a:score.A,b:score.B});
-  track('game_end',{a:score.A,b:score.B,streak:bestStreak});
+  track('game_end',{a:score.A,b:score.B,streak:bestStreak}); submitScore();
   burst();
 }
 function burst(){
