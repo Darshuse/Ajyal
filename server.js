@@ -117,16 +117,17 @@ function ttsProvider() {
   return process.env.AZURE_TTS_KEY ? 'azure' : (process.env.GOOGLE_TTS_KEY ? 'google' : (process.env.ELEVENLABS_KEY ? 'eleven' : null));
 }
 async function handleTTS(req, res, u) {
-  const code = u.searchParams.get('code'), text = String(u.searchParams.get('text') || '').slice(0, 600);
-  if (!isActive(code)) return sendJSON(res, 402, { error: 'not_active' });
+  // الصوت غير محمي بالاشتراك (يعمل في وضع الأطفال المجاني)؛ الحماية بحدّ استخدام حسب IP + كاش.
+  const text = String(u.searchParams.get('text') || '').slice(0, 600);
   if (!text) return sendJSON(res, 400, { error: 'no_text' });
+  const ip = String(req.headers['x-forwarded-for'] || (req.socket && req.socket.remoteAddress) || 'ip').split(',')[0].trim();
   const provider = ttsProvider();
   if (!provider) return sendJSON(res, 501, { error: 'no_tts' });
   const stab = u.searchParams.get('stab'), style = u.searchParams.get('style');
   const key = provider + '::' + (stab || '') + '::' + (style || '') + '::' + text;
   let buf = ttsCacheGet(key);
   if (!buf) {
-    if (!rateOk(code, 'tts', MAX_TTS)) return sendJSON(res, 429, { error: 'rate_limited' });
+    if (!rateOk(ip, 'tts', MAX_TTS)) return sendJSON(res, 429, { error: 'rate_limited' });
     try { buf = provider === 'azure' ? await ttsAzure(text) : provider === 'google' ? await ttsGoogle(text) : await ttsEleven(text, { stab, style }); ttsCacheSet(key, buf); }
     catch (e) { return sendJSON(res, 502, { error: 'tts_failed', detail: String(e && e.message || e).slice(0, 200) }); }
   }
