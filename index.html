@@ -1058,7 +1058,7 @@ function celebrateKids(who){
       el.appendChild(s);
     }
   }
-  el.hidden=false;sfxCheer();webSpeak(personal?`برافو يا ${first}`:'برافو، إجابة صحيحة');navigator.vibrate&&navigator.vibrate([30,40,30,40,60]);
+  el.hidden=false;sfxCheer();speakText('يا حلولي يا حلولي');navigator.vibrate&&navigator.vibrate([30,40,30,40,60]);
   clearTimeout(el._t);el._t=setTimeout(()=>{el.hidden=true;},1500);
 }
 
