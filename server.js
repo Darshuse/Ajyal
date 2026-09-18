@@ -98,14 +98,17 @@ async function ttsAzure(text) {
   if (!r.ok) throw new Error('azure ' + r.status);
   return Buffer.from(await r.arrayBuffer());
 }
-async function ttsEleven(text) {
+async function ttsEleven(text, opts) {
+  opts = opts || {};
   const KEY = process.env.ELEVENLABS_KEY;
   const voice = process.env.ELEVENLABS_VOICE || 'EXAVITQu4vr4xnSDxMaL';
   const model = process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2';
+  const stability = opts.stab != null && opts.stab !== '' ? Number(opts.stab) : 0.5;
+  const style = opts.style != null && opts.style !== '' ? Number(opts.style) : 0;
   const r = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voice, {
     method: 'POST',
     headers: { 'xi-api-key': KEY, 'content-type': 'application/json', 'accept': 'audio/mpeg' },
-    body: JSON.stringify({ text, model_id: model, voice_settings: { stability: 0.5, similarity_boost: 0.75 } })
+    body: JSON.stringify({ text, model_id: model, voice_settings: { stability, similarity_boost: 0.75, style, use_speaker_boost: true } })
   });
   if (!r.ok) throw new Error('eleven ' + r.status + ' ' + (await r.text()).slice(0, 120));
   return Buffer.from(await r.arrayBuffer());
@@ -119,11 +122,12 @@ async function handleTTS(req, res, u) {
   if (!text) return sendJSON(res, 400, { error: 'no_text' });
   const provider = ttsProvider();
   if (!provider) return sendJSON(res, 501, { error: 'no_tts' });
-  const key = provider + '::' + text;
+  const stab = u.searchParams.get('stab'), style = u.searchParams.get('style');
+  const key = provider + '::' + (stab || '') + '::' + (style || '') + '::' + text;
   let buf = ttsCacheGet(key);
   if (!buf) {
     if (!rateOk(code, 'tts', MAX_TTS)) return sendJSON(res, 429, { error: 'rate_limited' });
-    try { buf = provider === 'azure' ? await ttsAzure(text) : provider === 'google' ? await ttsGoogle(text) : await ttsEleven(text); ttsCacheSet(key, buf); }
+    try { buf = provider === 'azure' ? await ttsAzure(text) : provider === 'google' ? await ttsGoogle(text) : await ttsEleven(text, { stab, style }); ttsCacheSet(key, buf); }
     catch (e) { return sendJSON(res, 502, { error: 'tts_failed', detail: String(e && e.message || e).slice(0, 200) }); }
   }
   res.writeHead(200, { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=86400' });
