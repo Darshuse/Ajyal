@@ -148,6 +148,14 @@ const server = http.createServer(async (req, res) => {
     if (u.pathname === '/api/tts') return await handleTTS(req, res, u);
   } catch (e) { return sendJSON(res, 500, { error: 'server', detail: String(e && e.message || e).slice(0, 200) }); }
 
+  if (u.pathname === '/mascot.png') {
+    return fs.readFile(path.join(__dirname, 'mascot.png'), (err, data) => {
+      if (err) { res.writeHead(404); res.end('not found'); return; }
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' });
+      res.end(data);
+    });
+  }
+
   // SPA: أي مسار آخر يقدّم index.html
   fs.readFile(INDEX, (err, data) => {
     if (err) { res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('Server error'); return; }
