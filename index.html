@@ -959,7 +959,7 @@ function reveal(picked){
     if(gained>bestMoment.gained)bestMoment={team:who,gained,q:item.q};
     renderTug();countUp('pts'+who,before,score[who]);floatPoints(who,gained);
     sfxOK();navigator.vibrate&&navigator.vibrate(35);
-    if(mode==='kids'||mode==='curriculum')celebrateKids(who);
+    celebrateKids(who);
     setGlow(false); bumpStreak(true);
     if(streak>=3 && streak%3===0){ sfxStreak(); if(!(mode==='kids'||mode==='curriculum')) toast('🔥 متتالية نار! ×'+toAr(streak)); }
     $('fact').innerHTML=`<b>+${toAr(gained)} نقطة${curMult>1?' (مضاعفة! 🔥)':''}</b> ${esc(item.fact)}`;
@@ -992,6 +992,7 @@ function stealChoose(i){
     if(STEAL_POINTS>bestMoment.gained)bestMoment={team:other,gained:STEAL_POINTS,q:item.q};
     renderTug();countUp('pts'+other,before,score[other]);floatPoints(other,STEAL_POINTS);
     sfxOK();navigator.vibrate&&navigator.vibrate(35);
+    celebrateKids(other); setGlow(false);
     $('fact').innerHTML=`<b>🕵️ سرقة ناجحة! +${toAr(STEAL_POINTS)} لـ${esc(TEAM[other])}</b> ${esc(item.fact)}`;
   }else{
     sfxNo();
@@ -1075,7 +1076,8 @@ function celebrateKids(who){
   const el=$('celebrate');
   const defs=[MODE_DEFAULTS.kids.A,MODE_DEFAULTS.kids.B,'الفريق ١','الفريق ٢'];
   const nm=who&&TEAM[who]?String(TEAM[who]).trim():'';
-  const personal=nm&&defs.indexOf(nm)<0;const first=personal?nm.split(' ')[0]:'';
+  const kidCtx=(mode==='kids'||mode==='curriculum');
+  const personal=kidCtx&&nm&&defs.indexOf(nm)<0;const first=personal?nm.split(' ')[0]:'';
   el.querySelector('.celebrate-text').textContent=personal?`برافو يا ${first}! 🎉`:'برافو! إجابة صحيحة';
   el.querySelectorAll('.star,.conf').forEach(s=>s.remove());
   if(!matchMedia('(prefers-reduced-motion:reduce)').matches){
