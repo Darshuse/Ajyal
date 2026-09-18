@@ -70,6 +70,19 @@ async function handleGenerate(req, res) {
   } catch (e) { return sendJSON(res, 502, { error: 'gen_failed', detail: String(e && e.message || e).slice(0, 300) }); }
 }
 
+// تحليلات خفيفة: عدّادات يومية في الذاكرة + سطر لوج لكل حدث (يظهر في Railway logs)
+const EVENTS = {};
+function bumpEvent(name) { const day = new Date().toISOString().slice(0, 10); EVENTS[day] = EVENTS[day] || {}; EVENTS[day][name] = (EVENTS[day][name] || 0) + 1; }
+async function handleEvent(req, res) {
+  const raw = await readBody(req); let b = {}; try { b = JSON.parse(raw || '{}'); } catch (_) {}
+  const name = String(b.name || '').slice(0, 40);
+  if (!name) return sendJSON(res, 400, { error: 'no_name' });
+  const ip = String(req.headers['x-forwarded-for'] || (req.socket && req.socket.remoteAddress) || '').split(',')[0].trim();
+  bumpEvent(name);
+  console.log('[EVENT] ' + JSON.stringify({ name, mode: b.mode, extra: b.extra, ip, ts: new Date().toISOString() }));
+  return sendJSON(res, 200, { ok: true });
+}
+
 // كاش TTS في الذاكرة
 const TTSCACHE = new Map();
 function ttsCacheGet(k) { return TTSCACHE.get(k); }
@@ -143,8 +156,9 @@ const server = http.createServer(async (req, res) => {
       return sendJSON(res, 200, { active: isActive(code) });
     }
     if (u.pathname === '/api/health') {
-      return sendJSON(res, 200, { ok: true, activeCount: activeSet().size, gen: !!process.env.ANTHROPIC_API_KEY, tts: ttsProvider() || false });
+      return sendJSON(res, 200, { ok: true, activeCount: activeSet().size, gen: !!process.env.ANTHROPIC_API_KEY, tts: ttsProvider() || false, events: EVENTS[new Date().toISOString().slice(0, 10)] || {} });
     }
+    if (u.pathname === '/api/event' && req.method === 'POST') return await handleEvent(req, res);
     if (u.pathname === '/api/generate' && req.method === 'POST') return await handleGenerate(req, res);
     if (u.pathname === '/api/tts') return await handleTTS(req, res, u);
   } catch (e) { return sendJSON(res, 500, { error: 'server', detail: String(e && e.message || e).slice(0, 200) }); }
