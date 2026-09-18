@@ -1036,9 +1036,9 @@ async function speakText(t){
 function stopSpeak(){try{if(curAudio)curAudio.pause();}catch(_){} try{if('speechSynthesis'in window&&(speechSynthesis.speaking||speechSynthesis.pending))speechSynthesis.cancel();}catch(_){}}
 async function speakQ(){
   if(muted){toast('الصوت مكتوم — فعّله من زر الكتم بالأعلى');return;}
-  const item=QUESTIONS[idx];if(!item)return;const L=['أ','ب','ج','د','هـ'];
-  const opts=item.options.map((o,i)=>`${L[i]}: ${o}`).join('، ');
-  const ok=await speakText(item.q+'. '+opts);
+  const item=QUESTIONS[idx];if(!item)return;
+  const opts=item.options.join('، '); // بلا حروف (أ/ب) — نطق الحروف مفردة يتلخبط
+  const ok=await speakText(item.q+'. الخيارات: '+opts);
   if(!ok)toast('الصوت غير متاح الآن — على النسخة المنشورة يلزم تفعيل TTS بالخادم، أو صوت عربي في جهازك');
 }
 function celebrateKids(who){
