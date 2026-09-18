@@ -516,7 +516,8 @@
     <h2 class="winner" id="winner">فاز الفريق!</h2>
     <p class="finalscore" id="finalscore"></p>
     <p class="mvp" id="mvp" hidden></p>
-    <button class="btn" onclick="replay()">لعبة جديدة (أسئلة مختلفة) 🔁</button>
+    <button class="btn" style="background:var(--teal);color:#06302b" onclick="shareResult()">📲 شارك النتيجة وتحدَّ العائلة</button>
+    <button class="btn" style="margin-top:10px" onclick="replay()">لعبة جديدة (أسئلة مختلفة) 🔁</button>
     <button class="btn ghost" style="margin-top:10px" onclick="toStart()">تغيير الإعدادات</button>
     <div class="rate" id="rateBox">
       <span>استمتعتم؟</span>
@@ -1180,6 +1181,16 @@ function playCurriculum(){
   $('nameA').innerHTML=avA+' '+esc(TEAM.A);$('nameB').innerHTML=avB+' '+esc(TEAM.B);renderScore();goPass();
 }
 
+const PLAY_URL='https://ajyal-production.up.railway.app';
+function waShare(msg){ window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank','noopener'); }
+function shareResult(){
+  const a=score.A,b=score.B; const win=a>b?TEAM.A:(b>a?TEAM.B:'');
+  const line=(a===b)?`تعادُل مثير ${toAr(a)}–${toAr(b)} 🤝`:`🏆 الفائز: ${win} بـ ${toAr(Math.max(a,b))} نقطة`;
+  const streakTxt=bestStreak>=3?`\n🔥 أطول متتالية: ${toAr(bestStreak)} صح على التوالي`:'';
+  const text=`🎮 لعبنا «أجيال» — لعبة المجلس بين الأجيال!\n${line}${streakTxt}\nتقدروا تكسروا رقمنا؟ العبوا:`;
+  if(navigator.share){ navigator.share({title:'أجيال',text,url:PLAY_URL}).catch(()=>waShare(text+'\n'+PLAY_URL)); }
+  else waShare(text+'\n'+PLAY_URL);
+}
 function endGame(){
   show('screenEnd');
   $('rateBox').innerHTML='<span>استمتعتم؟</span><button class="ratebtn" onclick="rate(\'up\')">👍</button><button class="ratebtn" onclick="rate(\'down\')">👎</button>';
@@ -1192,9 +1203,10 @@ function endGame(){
   $('pitch').innerHTML= mode==='gen'
     ? '<b>ملاحظة سلوكية:</b> منافسة الأجيال تشعل الحماس، والنقاط المضاعفة تمنع أي جيل من الخسارة الدائمة والانسحاب.'
     : '<b>ليه مفيدة؟</b> الفرق المختلطة تجمع الأجيال في صفٍّ واحد، تنشّط ذاكرة الكبار، وتفتح حوارًا يوميًا بدل الشاشات المنفصلة.';
-  if(bestMoment.gained>0){$('mvp').hidden=false;$('mvp').innerHTML=`⭐ نجم الجلسة: <b>${esc(TEAM[bestMoment.team])}</b> بـ +${toAr(bestMoment.gained)} على «${esc(bestMoment.q)}»`;}
-  if(bestStreak>=3){$('mvp').hidden=false;$('mvp').innerHTML+=`<br>🔥 أطول متتالية: <b>${toAr(bestStreak)}</b> إجابات صحيحة على التوالي`;}
-  else $('mvp').hidden=true;
+  let mvpHTML='';
+  if(bestMoment.gained>0)mvpHTML=`⭐ نجم الجلسة: <b>${esc(TEAM[bestMoment.team])}</b> بـ +${toAr(bestMoment.gained)} على «${esc(bestMoment.q)}»`;
+  if(bestStreak>=3)mvpHTML+=(mvpHTML?'<br>':'')+`🔥 أطول متتالية: <b>${toAr(bestStreak)}</b> إجابات صحيحة على التوالي`;
+  $('mvp').innerHTML=mvpHTML;$('mvp').hidden=!mvpHTML;
   logFeedback({type:'result',mode,level,a:score.A,b:score.B});
   burst();
 }
