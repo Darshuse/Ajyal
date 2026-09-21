@@ -103,6 +103,8 @@
   .mode:hover{transform:translateY(-1px)}
   .mode.sel{border-color:var(--gold); background:color-mix(in srgb,var(--gold) 12%, var(--surface2)); box-shadow:0 0 0 1px var(--gold) inset}
   .mode .ico{font-size:1.85rem; line-height:1; flex-shrink:0}
+  .mode .ico svg{width:31px; height:31px; fill:none; stroke:var(--ink); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; display:block}
+  .mode.sel .ico svg{stroke:var(--gold-deep)}
   .mode .txt .t{font-weight:700; font-size:.92rem; font-family:"Baloo Bhaijaan 2",sans-serif; line-height:1.3}
   .mode .txt .d{display:none}
   .mode .rec{position:absolute; top:-8px; inset-inline-end:8px; background:var(--mint); color:#0c2b28;
@@ -379,14 +381,14 @@
       <div id="modeGrid">
         <p class="group-label">👨‍👩‍👧‍👦 أوضاع العائلة</p>
         <div class="mode-row">
-          <button class="mode" data-mode="mixed"><span class="rec">الأفضل</span><span class="ico">👨‍👩‍👧‍👦</span><span class="txt"><span class="t">فرق مختلطة</span></span><span class="check"></span></button>
-          <button class="mode sel" data-mode="gen"><span class="ico">👳🧒</span><span class="txt"><span class="t">كبار ضد صغار</span></span><span class="check"></span></button>
-          <button class="mode" data-mode="friends"><span class="ico">🤝</span><span class="txt"><span class="t">أصدقاء / فرق حرّة</span></span><span class="check"></span></button>
+          <button class="mode" data-mode="mixed"><span class="rec">الأفضل</span><span class="ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3.2"/><path d="M2.5 20c0-3.3 2.4-5.5 5.5-5.5S13.5 16.7 13.5 20"/><circle cx="17" cy="10" r="2.3" style="stroke:var(--mint)"/><path d="M13.8 20c0-2.4 1.5-4 3.2-4s3.2 1.6 3.2 4" style="stroke:var(--mint)"/></svg></span><span class="txt"><span class="t">فرق مختلطة</span></span><span class="check"></span></button>
+          <button class="mode sel" data-mode="gen"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="6.5" cy="8" r="2.8"/><path d="M2.5 20c0-2.8 1.8-4.6 4-4.6"/><circle cx="17.5" cy="8" r="2.8"/><path d="M21.5 20c0-2.8-1.8-4.6-4-4.6"/><path d="M12 6l-1.7 4.3h3.4L12 14.6" style="stroke:var(--gold)"/></svg></span><span class="txt"><span class="t">كبار ضد صغار</span></span><span class="check"></span></button>
+          <button class="mode" data-mode="friends"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="5"/><circle cx="15" cy="12" r="5" style="stroke:var(--mint)"/></svg></span><span class="txt"><span class="t">أصدقاء / فرق حرّة</span></span><span class="check"></span></button>
         </div>
         <p class="group-label mt">✨ أوضاع خاصة</p>
         <div class="mode-row">
-          <button class="mode" data-mode="kids"><span class="ico">👶</span><span class="txt"><span class="t">وضع الأطفال</span></span><span class="check"></span></button>
-          <button class="mode" data-mode="ent"><span class="ico">🎬</span><span class="txt"><span class="t">وضع الترفيه</span></span><span class="check"></span></button>
+          <button class="mode" data-mode="kids"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="6"/><path d="M12 15v5"/><circle cx="10" cy="8.5" r=".9" fill="var(--ink)" stroke="none"/><circle cx="14" cy="8.5" r=".9" fill="var(--ink)" stroke="none"/><path d="M9.7 11.4c1.2 1.2 3.4 1.2 4.6 0"/></svg></span><span class="txt"><span class="t">وضع الأطفال</span></span><span class="check"></span></button>
+          <button class="mode" data-mode="ent"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="11" rx="1.6"/><path d="M3.4 9l2.4-4 3.6 1.6 2.6-2.6 3.6 1.6 3-1.6" style="stroke:var(--gold)"/></svg></span><span class="txt"><span class="t">وضع الترفيه</span></span><span class="check"></span></button>
         </div>
       </div>
     </div>
@@ -419,9 +421,9 @@
     <button class="btn cta" onclick="startGame()">يـلّا نبدأ 🎬</button>
     <p class="pick-label" style="margin:18px 0 8px">أوضاع أخرى</p>
     <div class="mode-row othermodes">
-      <button class="mode" onclick="openAuthor()"><span class="ico">✍️</span><span class="txt"><span class="t">أسئلة العائلة</span></span><span id="ugcBadge"></span></button>
-      <button class="mode" onclick="openSchool()"><span class="ico">🏫</span><span class="txt"><span class="t">وضع الروضة</span></span></button>
-      <button class="mode" onclick="openSeasons()"><span class="ico">🌙</span><span class="txt"><span class="t">باقات المواسم</span></span></button>
+      <button class="mode" onclick="openAuthor()"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/><path d="M13.5 7.5l3 3" style="stroke:var(--gold)"/></svg></span><span class="txt"><span class="t">أسئلة العائلة</span></span><span id="ugcBadge"></span></button>
+      <button class="mode" onclick="openSchool()"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 4.5l9 4-9 4-9-4 9-4z"/><path d="M6 11v4.2c0 1.5 3 2.8 6 2.8s6-1.3 6-2.8V11"/><path d="M21 8.6v4.2" style="stroke:var(--mint)"/></svg></span><span class="txt"><span class="t">وضع الروضة</span></span></button>
+      <button class="mode" onclick="openSeasons()"><span class="ico"><svg viewBox="0 0 24 24"><path d="M17.5 12.5A6.2 6.2 0 1 1 12 6.3 5 5 0 0 0 17.5 12.5z"/><path d="M18.6 4.6l.7 1.6 1.8.2-1.4 1.2.4 1.8-1.5-.9-1.6.9.4-1.8-1.3-1.2 1.8-.2z" style="stroke:var(--gold);fill:var(--gold)"/></svg></span><span class="txt"><span class="t">باقات المواسم</span></span></button>
     </div>
     <p class="hint" id="startHint"></p>
   </section>
