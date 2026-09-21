@@ -168,6 +168,17 @@
 
   /* UGC / author */
   .linkbtn{width:100%; margin-top:10px}
+  .advopts{margin:2px 0 12px; border:1px solid var(--line); border-radius:14px; background:var(--surface); box-shadow:var(--shadow-sm)}
+  .advopts>summary{list-style:none; cursor:pointer; padding:13px 16px; font-weight:700; font-size:.92rem; color:var(--ink); display:flex; justify-content:space-between; align-items:center}
+  .advopts>summary::-webkit-details-marker{display:none}
+  .advopts>summary::after{content:'▾'; color:var(--muted); transition:transform .2s}
+  .advopts[open]>summary::after{transform:rotate(180deg)}
+  .advopts .block{padding:0 16px; margin-bottom:14px}
+  .advopts .block:last-of-type{margin-bottom:14px}
+  .btn.cta{font-size:1.18rem; padding:17px; margin-top:2px}
+  .mode-row.othermodes{grid-template-columns:repeat(3,1fr)}
+  .mode-row.othermodes .mode{position:relative}
+  .mode-row.othermodes #ugcBadge{position:absolute; top:5px; inset-inline-start:5px}
   #ugcBadge{color:var(--mint); font-size:.85rem; font-weight:700}
   .form-row{display:grid; gap:8px; margin-bottom:12px}
   .form-row > label{font-size:.8rem; color:var(--muted); font-weight:700}
@@ -364,7 +375,7 @@
     <p class="subtitle">جهّزوا اللعبة: اختاروا الوضع والمستوى وسمّوا فرقكم.</p>
 
     <div class="block">
-      <p class="pick-label">١ · وضع اللعب</p>
+      <p class="pick-label">اختاروا وضع اللعب</p>
       <div id="modeGrid">
         <p class="group-label">👨‍👩‍👧‍👦 أوضاع العائلة</p>
         <div class="mode-row">
@@ -380,13 +391,14 @@
       </div>
     </div>
 
+    <details class="advopts"><summary>⚙️ خيارات إضافية (المستوى · الأسماء · الشخصيات) — اختياري</summary>
     <div class="block">
-      <p class="pick-label">٢ · المستوى</p>
+      <p class="pick-label">المستوى</p>
       <div class="level-row" id="levelRow"></div>
     </div>
 
     <div class="block">
-      <p class="pick-label">٣ · أسماء الفرق</p>
+      <p class="pick-label">أسماء الفرق</p>
       <div class="names">
         <div class="field a"><label>الفريق الذهبي</label><input id="nameInA" maxlength="16" placeholder="الكبار"></div>
         <div class="field b"><label>الفريق الفيروزي</label><input id="nameInB" maxlength="16" placeholder="الصغار"></div>
@@ -394,7 +406,7 @@
     </div>
 
     <div class="block">
-      <p class="pick-label">٤ · شخصية كل فريق</p>
+      <p class="pick-label">شخصية كل فريق</p>
       <div class="avrow" id="avRowA"></div>
       <div class="avrow" id="avRowB"></div>
     </div>
@@ -403,10 +415,14 @@
       <label class="toggle"><input type="checkbox" id="relaxedChk"><span>وضع مريح — بلا مؤقّت (مناسب لكبار السن) 🧘</span></label>
     </div>
 
-    <button class="btn" onclick="startGame()">يـلّا نبدأ 🎬</button>
-    <button class="btn ghost linkbtn" onclick="openAuthor()">✍️ أضيفوا أسئلة العائلة <span id="ugcBadge"></span></button>
-    <button class="btn ghost linkbtn" onclick="openSchool()">🏫 وضع الروضة — ولّد أسئلة من منهجكم</button>
-    <button class="btn ghost linkbtn" onclick="openSeasons()">🌙 باقات المواسم — رمضان · اليوم الوطني · الأعياد</button>
+    </details>
+    <button class="btn cta" onclick="startGame()">يـلّا نبدأ 🎬</button>
+    <p class="pick-label" style="margin:18px 0 8px">أوضاع أخرى</p>
+    <div class="mode-row othermodes">
+      <button class="mode" onclick="openAuthor()"><span class="ico">✍️</span><span class="txt"><span class="t">أسئلة العائلة</span></span><span id="ugcBadge"></span></button>
+      <button class="mode" onclick="openSchool()"><span class="ico">🏫</span><span class="txt"><span class="t">وضع الروضة</span></span></button>
+      <button class="mode" onclick="openSeasons()"><span class="ico">🌙</span><span class="txt"><span class="t">باقات المواسم</span></span></button>
+    </div>
     <p class="hint" id="startHint"></p>
   </section>
 
