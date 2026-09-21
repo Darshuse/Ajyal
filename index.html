@@ -406,6 +406,7 @@
     <button class="btn" onclick="startGame()">يـلّا نبدأ 🎬</button>
     <button class="btn ghost linkbtn" onclick="openAuthor()">✍️ أضيفوا أسئلة العائلة <span id="ugcBadge"></span></button>
     <button class="btn ghost linkbtn" onclick="openSchool()">🏫 وضع الروضة — ولّد أسئلة من منهجكم</button>
+    <button class="btn ghost linkbtn" onclick="openSeasons()">🌙 باقات المواسم — رمضان · اليوم الوطني · الأعياد</button>
     <p class="hint" id="startHint"></p>
   </section>
 
@@ -462,6 +463,18 @@
       <button class="btn ghost" id="checkBtn" style="margin-top:10px" onclick="checkActivation()">✅ تحقّقت من الدفع — فعّل</button>
       <button class="btn ghost" style="margin-top:10px" onclick="toStart()">رجوع</button>
     </div>
+  </section>
+
+  <!-- SEASONS (themed packs) -->
+  <section id="screenSeasons" class="pad hidden">
+    <p class="pick-label">باقات المواسم 🌙</p>
+    <p class="subtitle" style="margin-bottom:16px">أسئلة موسمية جاهزة — اختاروا باقة والعبوا فورًا.</p>
+    <div class="mode-row">
+      <button class="mode" onclick="playSeason('ramadan')"><span class="ico">🌙</span><span class="txt"><span class="t">رمضان</span></span></button>
+      <button class="mode" onclick="playSeason('national')"><span class="ico">🇸🇦</span><span class="txt"><span class="t">اليوم الوطني</span></span></button>
+      <button class="mode" onclick="playSeason('eid')"><span class="ico">🎉</span><span class="txt"><span class="t">الأعياد</span></span></button>
+    </div>
+    <button class="btn ghost" style="margin-top:16px" onclick="toStart()">رجوع للقائمة</button>
   </section>
 
   <!-- SCHOOL (nursery curriculum → AI questions) -->
@@ -708,8 +721,38 @@ const ENT=[
  {round:'فوازير 🧩',q:'أخضر في الأرض أسود في السوق أحمر في الكوب، ما هو؟',options:['البُنّ','الشاي','النعناع','التمر'],answer:1,fact:'الشاي.'},
  {round:'فوازير 🧩',q:'كلما زاد نقص، ما هو؟',options:['المال','العمر','الوزن','الوقت'],answer:1,fact:'العمر.'},
 ];
+const SEASONS={
+ ramadan:[
+  {round:'رمضان 🌙',q:'متى يبدأ صيام المسلم في رمضان؟',options:['أذان الظهر','أذان الفجر','أذان العصر','أذان المغرب'],answer:1,fact:'الصيام من طلوع الفجر إلى غروب الشمس.'},
+  {round:'رمضان 🌙',q:'متى يُفطر الصائم؟',options:['أذان المغرب','أذان العشاء','منتصف الليل','أذان الظهر'],answer:0,fact:'يُفطر عند أذان المغرب.'},
+  {round:'رمضان 🌙',q:'الوجبة قبل الفجر في رمضان تُسمّى؟',options:['الإفطار','السحور','الغداء','العشاء'],answer:1,fact:'السحور فيه بركة.'},
+  {round:'رمضان 🌙',q:'يُستحبّ أن يبدأ الإفطار بـ؟',options:['التمر','اللحم','الأرز','الحلوى'],answer:0,fact:'السنة الإفطار على تمر أو ماء.'},
+  {round:'رمضان 🌙',q:'صلاة الليل الجماعية في رمضان تُسمّى؟',options:['الوتر','التراويح','الضحى','الاستسقاء'],answer:1,fact:'التراويح بعد صلاة العشاء.'},
+  {round:'رمضان 🌙',q:'رمضان هو الشهر رقم كم في التقويم الهجري؟',options:['السابع','الثامن','التاسع','العاشر'],answer:2,fact:'رمضان الشهر التاسع هجريًا.'},
+  {round:'رمضان 🌙',q:'الليلة التي هي خير من ألف شهر تُسمّى؟',options:['ليلة الإسراء','ليلة القدر','ليلة النصف','ليلة الجمعة'],answer:1,fact:'ليلة القدر في العشر الأواخر.'},
+  {round:'رمضان 🌙',q:'العيد الذي يأتي بعد رمضان؟',options:['عيد الأضحى','عيد الفطر','رأس السنة','المولد'],answer:1,fact:'عيد الفطر أول شوال.'}
+ ],
+ national:[
+  {round:'اليوم الوطني 🇸🇦',q:'ما لون العلم السعودي؟',options:['أحمر','أخضر','أزرق','أسود'],answer:1,fact:'العلم أخضر وعليه الشهادة وسيف.'},
+  {round:'اليوم الوطني 🇸🇦',q:'ما عاصمة المملكة العربية السعودية؟',options:['جدة','الرياض','مكة','الدمام'],answer:1,fact:'الرياض هي العاصمة.'},
+  {round:'اليوم الوطني 🇸🇦',q:'في أي مدينة توجد الكعبة المشرّفة؟',options:['المدينة','مكة المكرمة','الطائف','أبها'],answer:1,fact:'الكعبة في مكة المكرمة.'},
+  {round:'اليوم الوطني 🇸🇦',q:'المسجد النبوي يوجد في مدينة؟',options:['المدينة المنورة','مكة','الرياض','تبوك'],answer:0,fact:'المسجد النبوي في المدينة المنورة.'},
+  {round:'اليوم الوطني 🇸🇦',q:'ما عملة السعودية؟',options:['الدرهم','الريال','الدينار','الجنيه'],answer:1,fact:'الريال السعودي.'},
+  {round:'اليوم الوطني 🇸🇦',q:'مَن وحّد المملكة العربية السعودية؟',options:['الملك فيصل','الملك عبد العزيز','الملك سعود','الملك خالد'],answer:1,fact:'الملك عبد العزيز آل سعود.'},
+  {round:'اليوم الوطني 🇸🇦',q:'ما البحر الواقع غرب السعودية؟',options:['البحر الأحمر','الخليج العربي','بحر العرب','المتوسط'],answer:0,fact:'البحر الأحمر غربًا.'},
+  {round:'اليوم الوطني 🇸🇦',q:'كلمة تشتهر بها احتفالات اليوم الوطني؟',options:['هلا','طال عمرك','هَمّة حتى القمة','مبروك'],answer:2,fact:'شعارات وطنية متجددة كل عام.'}
+ ],
+ eid:[
+  {round:'الأعياد 🎉',q:'العيد الذي يأتي بعد صيام رمضان؟',options:['عيد الأضحى','عيد الفطر','المولد','رأس السنة'],answer:1,fact:'عيد الفطر.'},
+  {round:'الأعياد 🎉',q:'العيد المصاحب لموسم الحج؟',options:['عيد الفطر','عيد الأضحى','عيد الغدير','النيروز'],answer:1,fact:'عيد الأضحى في ذي الحجة.'},
+  {round:'الأعياد 🎉',q:'ماذا نقول للتهنئة في العيد؟',options:['عيد مبارك','تصبح على خير','بالتوفيق','مع السلامة'],answer:0,fact:'«عيد مبارك» و«كل عام وأنتم بخير».'},
+  {round:'الأعياد 🎉',q:'الحلوى الشهيرة في عيد الفطر بمصر؟',options:['البسبوسة','كحك العيد','الكنافة','بقلاوة'],answer:1,fact:'كحك العيد تقليد مصري.'},
+  {round:'الأعياد 🎉',q:'في عيد الأضحى يتقرّب المسلم بـ؟',options:['الصيام','الأضحية','الاعتكاف','السحور'],answer:1,fact:'ذبح الأضحية سنة مؤكدة.'},
+  {round:'الأعياد 🎉',q:'متى تُصلّى صلاة العيد؟',options:['بعد الفجر بقليل','صباحًا بعد الشروق','الظهر','المغرب'],answer:1,fact:'صباح العيد بعد شروق الشمس.'}
+ ]
+};
 const LEVELS=[{id:1,stars:'★☆☆',name:'مبتدئ'},{id:2,stars:'★★☆',name:'متوسط'},{id:3,stars:'★★★',name:'خبير'}];
-const MODE_DEFAULTS={gen:{A:'الكبار',B:'الصغار'},mixed:{A:'الفريق الذهبي',B:'الفريق الفيروزي'},friends:{A:'الفريق ١',B:'الفريق ٢'},kids:{A:'النجوم',B:'الأبطال'},ent:{A:'الفريق ١',B:'الفريق ٢'}};
+const MODE_DEFAULTS={gen:{A:'الكبار',B:'الصغار'},mixed:{A:'الفريق الذهبي',B:'الفريق الفيروزي'},friends:{A:'الفريق ١',B:'الفريق ٢'},kids:{A:'النجوم',B:'الأبطال'},ent:{A:'الفريق ١',B:'الفريق ٢'},season:{A:'الفريق ١',B:'الفريق ٢'}};
 const CATCHUP_GAP=15, QPERGAME=6, T={gold:'#f6b83f',goldD:'#dd982a',mint:'#37d5c4',mintD:'#18b1a1'};
 
 let mode='gen', level=1, idx=0, score={A:0,B:0}, locked=false, timeLeft=0, timer=null,
@@ -784,7 +827,15 @@ function bumpStreak(good){if(good){streak++;if(streak>bestStreak)bestStreak=stre
 function sfxStreak(){initAudio();if(!actx||muted)return;[523,659,784,1047,1319].forEach((f,i)=>tone(f,i*0.07,0.2,'sine',0.16));}
 function track(name,extra){ if(window.claude&&window.claude.use)return; try{fetch('/api/event',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name,mode,extra})}).catch(()=>{});}catch(_){} }
 function submitScore(){ if(window.claude&&window.claude.use)return; const a=score.A,b=score.B; const win=a>b?TEAM.A:(b>a?TEAM.B:'تعادل'); try{fetch('/api/score',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:win,score:Math.max(a,b),mode,streak:bestStreak})}).catch(()=>{});}catch(_){} }
-let curChildName='';
+let curChildName='', SEASON_PACK='';
+function openSeasons(){ show('screenSeasons'); }
+function playSeason(pack){
+  if(!SEASONS[pack]||!SEASONS[pack].length){toast('الباقة فارغة');return;}
+  mode='season'; SEASON_PACK=pack; relaxed=false;
+  TEAM={A:MODE_DEFAULTS.season.A,B:MODE_DEFAULTS.season.B};
+  QUESTIONS=buildQuestions(); idx=0; score={A:0,B:0}; bestMoment={team:null,gained:0,q:''}; lifelines={A:1,B:1}; streak=0; bestStreak=0;
+  $('nameA').innerHTML=avA+' '+esc(TEAM.A); $('nameB').innerHTML=avB+' '+esc(TEAM.B); renderScore(); goPass();
+}
 function recordAnswer(item,correct){ if(mode!=='curriculum'||(window.claude&&window.claude.use)||!item)return;
   try{fetch('/api/answer',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:devCode(),child:curChildName,topic:item.round,question:item.q,correct:!!correct})}).catch(()=>{});}catch(_){} }
 function barCls(p){return p<50?'low':(p<75?'mid':'');}
@@ -815,8 +866,8 @@ function rate(v){const arr=JSON.parse(load('sah_ratings','[]'));arr.push({v,mode
 
 /* ---- flow ---- */
 function toStart(){show('screenStart');}
-function show(id){['screenStart','screenAuthor','screenSchool','screenPaywall','screenPass','screenPlay','screenEnd'].forEach(s=>$(s).classList.toggle('hidden',s!==id));
-  $('tugBar').hidden=(id==='screenStart'||id==='screenAuthor'||id==='screenSchool'||id==='screenPaywall');}
+function show(id){['screenStart','screenAuthor','screenSchool','screenPaywall','screenSeasons','screenPass','screenPlay','screenEnd'].forEach(s=>$(s).classList.toggle('hidden',s!==id));
+  $('tugBar').hidden=(id==='screenStart'||id==='screenAuthor'||id==='screenSchool'||id==='screenPaywall'||id==='screenSeasons');}
 
 /* ==== Family question bank: shared via db when available, else local ==== */
 (function initDB(){
@@ -916,6 +967,7 @@ function renderUGC(){
 function buildQuestions(){
   if(mode==='kids')return shuffle([...getPool(1)]).slice(0,QPERGAME);
   if(mode==='ent')return shuffle([...ENT]).slice(0,QPERGAME);
+  if(mode==='season')return shuffle([...(SEASONS[SEASON_PACK]||[])]).slice(0,QPERGAME);
   const pool=getPool(level);
   if(mode==='gen'){
     const E=shuffle(pool.filter(q=>q.cat==='elders')).slice(0,QPERGAME/2);
