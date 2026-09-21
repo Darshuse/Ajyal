@@ -124,6 +124,17 @@
   .paysteps{text-align:right; margin:0 0 16px; padding-inline-start:18px; color:var(--ink); font-size:.9rem; line-height:2.05}
   .paynum{font-weight:800; font-size:1.18rem; letter-spacing:1px; color:var(--gold-deep); direction:ltr; display:inline-block; margin-top:2px}
   .devcode{font-weight:800; color:var(--gold-deep); direction:ltr; display:inline-block; background:var(--surface2); padding:2px 9px; border-radius:8px; margin-top:2px}
+  .repwrap{margin-top:14px; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px; box-shadow:var(--shadow-sm)}
+  .repbig{font-size:2.2rem; font-weight:800; color:var(--gold-deep); text-align:center; line-height:1}
+  .repbig span{font-size:.85rem; color:var(--muted); font-weight:700; display:block; margin-top:3px}
+  .repmeta{text-align:center; color:var(--muted); font-size:.85rem; margin:4px 0 12px}
+  .rephead{font-size:.78rem; color:var(--muted); font-weight:700; margin:12px 0 6px}
+  .reprow{display:flex; align-items:center; gap:8px; margin:7px 0; font-size:.85rem}
+  .reprow .rt{flex:0 0 34%; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .reprow .rbar{flex:1; height:9px; background:var(--surface2); border-radius:999px; overflow:hidden}
+  .reprow .rbar i{display:block; height:100%; background:var(--good); border-radius:999px; transition:width .5s ease-out}
+  .reprow .rbar i.low{background:var(--bad)} .reprow .rbar i.mid{background:var(--gold)}
+  .reprow .rp{flex:0 0 44px; text-align:left; font-variant-numeric:tabular-nums; font-weight:800}
 
   .level-row{display:grid; grid-template-columns:repeat(3,1fr); gap:9px}
   .lvl{border:1px solid var(--line); background:var(--surface); color:var(--ink);
@@ -461,11 +472,15 @@
       <textarea class="inp" id="curText" placeholder="مثال: الحروف الهجائية، الأرقام من ١ إلى ١٠، الألوان الأساسية، أسماء الحيوانات الأليفة وأصواتها…"></textarea></div>
     <div class="form-row"><label>عدد الأسئلة</label>
       <select class="sel" id="curN"><option>3</option><option selected>5</option><option>8</option></select></div>
+    <div class="form-row"><label>اسم الطفل / الفصل (اختياري — يظهر في التقرير)</label>
+      <input class="inp" id="curChild" placeholder="مثلًا: فصل تمهيدي أ" spellcheck="false" autocomplete="off"></div>
     <button class="btn" id="genBtn" onclick="genFromCurriculum()">✨ ولّد الأسئلة</button>
     <p class="hint" id="genStatus"></p>
     <p class="pick-label" style="margin:18px 0 8px">الأسئلة المقترحة</p>
     <div class="ugclist" id="curList"></div>
     <button class="btn" id="playCurBtn" hidden style="margin-top:16px" onclick="playCurriculum()">العب بأسئلة المنهج المعتمدة ▶</button>
+    <button class="btn ghost" style="margin-top:12px" onclick="loadReport()">📊 تقرير تقدّم الأطفال</button>
+    <div id="curReport"></div>
     <button class="btn ghost" style="margin-top:10px" onclick="toStart()">رجوع للقائمة</button>
   </section>
 
@@ -769,6 +784,30 @@ function bumpStreak(good){if(good){streak++;if(streak>bestStreak)bestStreak=stre
 function sfxStreak(){initAudio();if(!actx||muted)return;[523,659,784,1047,1319].forEach((f,i)=>tone(f,i*0.07,0.2,'sine',0.16));}
 function track(name,extra){ if(window.claude&&window.claude.use)return; try{fetch('/api/event',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name,mode,extra})}).catch(()=>{});}catch(_){} }
 function submitScore(){ if(window.claude&&window.claude.use)return; const a=score.A,b=score.B; const win=a>b?TEAM.A:(b>a?TEAM.B:'تعادل'); try{fetch('/api/score',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:win,score:Math.max(a,b),mode,streak:bestStreak})}).catch(()=>{});}catch(_){} }
+let curChildName='';
+function recordAnswer(item,correct){ if(mode!=='curriculum'||(window.claude&&window.claude.use)||!item)return;
+  try{fetch('/api/answer',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:devCode(),child:curChildName,topic:item.round,question:item.q,correct:!!correct})}).catch(()=>{});}catch(_){} }
+function barCls(p){return p<50?'low':(p<75?'mid':'');}
+function renderReport(d){
+  const c=$('curReport');
+  if(!d||!d.total){ c.innerHTML='<div class="empty">لا توجد بيانات بعد — شغّلوا جلسة منهج (اعتمدوا أسئلة والعبوا) أولًا</div>'; return; }
+  let h=`<div class="repwrap"><div class="repbig">${toAr(d.accuracy)}٪<span>دقّة عامة</span></div><div class="repmeta">${toAr(d.correct)} من ${toAr(d.total)} إجابة صحيحة</div>`;
+  if(d.topics&&d.topics.length){ h+='<div class="rephead">حسب الموضوع — نقاط القوة والضعف</div>';
+    d.topics.forEach(t=>{h+=`<div class="reprow"><span class="rt">${esc(t.topic)}</span><span class="rbar"><i class="${barCls(t.accuracy)}" style="width:${t.accuracy}%"></i></span><span class="rp">${toAr(t.accuracy)}٪</span></div>`;}); }
+  if(d.children&&d.children.length>1){ h+='<div class="rephead">حسب الطفل / الفصل</div>';
+    d.children.forEach(t=>{h+=`<div class="reprow"><span class="rt">${esc(t.child)}</span><span class="rbar"><i class="${barCls(t.accuracy)}" style="width:${t.accuracy}%"></i></span><span class="rp">${toAr(t.accuracy)}٪</span></div>`;}); }
+  h+='</div>';
+  c.innerHTML=h;
+}
+async function loadReport(){
+  const c=$('curReport');
+  if(window.claude&&window.claude.use){ c.innerHTML='<div class="empty">📊 التقارير تعمل على النسخة المنشورة (Railway)، لأنها تحفظ بيانات في الخادم.</div>'; return; }
+  c.innerHTML='<div class="empty">⏳ جاري تحميل التقرير…</div>';
+  try{ const r=await fetch('/api/report?code='+encodeURIComponent(devCode()));
+    if(r.status===402){ c.innerHTML='<div class="empty">الاشتراك غير مفعّل</div>'; return; }
+    renderReport(await r.json());
+  }catch(e){ c.innerHTML='<div class="empty">تعذّر تحميل التقرير — تأكّد من الإنترنت</div>'; }
+}
 function reportQ(){const it=QUESTIONS[idx];const arr=JSON.parse(load('sah_reports','[]'));arr.push({level,q:it.q,ts:Date.now()});store('sah_reports',JSON.stringify(arr));logFeedback({type:'report',level,q:it.q});toast('شكرًا 🙏 سجّلنا ملاحظتكم عن السؤال');}
 function rate(v){const arr=JSON.parse(load('sah_ratings','[]'));arr.push({v,mode,level,ts:Date.now()});store('sah_ratings',JSON.stringify(arr));
   logFeedback({type:'rating',v,mode,level});
@@ -964,12 +1003,12 @@ function reveal(picked){
     renderTug();countUp('pts'+who,before,score[who]);floatPoints(who,gained);
     sfxOK();navigator.vibrate&&navigator.vibrate(35);
     celebrateKids(who);
-    setGlow(false); bumpStreak(true);
+    setGlow(false); bumpStreak(true); recordAnswer(item,true);
     if(streak>=3 && streak%3===0){ sfxStreak(); if(!(mode==='kids'||mode==='curriculum')) toast('🔥 متتالية نار! ×'+toAr(streak)); }
     $('fact').innerHTML=`<b>+${toAr(gained)} نقطة${curMult>1?' (مضاعفة! 🔥)':''}</b> ${esc(item.fact)}`;
     finishReveal();
   }else{
-    setGlow(true); bumpStreak(false);
+    setGlow(true); bumpStreak(false); recordAnswer(item,false);
     startSteal(item,who,other,picked);
   }
 }
@@ -1180,6 +1219,7 @@ function dropCur(i){genResults.splice(i,1);renderCur();}
 function playCurriculum(){
   if(curriculumBank.length<3){toast('اعتمدي ٣ أسئلة على الأقل');return;}
   mode='curriculum';relaxed=true;TEAM={A:MODE_DEFAULTS.kids.A,B:MODE_DEFAULTS.kids.B};
+  curChildName=($('curChild')&&$('curChild').value.trim())||'';
   QUESTIONS=shuffle([...curriculumBank]).slice(0,Math.min(QPERGAME,curriculumBank.length));
   idx=0;score={A:0,B:0};bestMoment={team:null,gained:0,q:''};lifelines={A:1,B:1};streak=0;bestStreak=0;
   $('nameA').innerHTML=avA+' '+esc(TEAM.A);$('nameB').innerHTML=avB+' '+esc(TEAM.B);renderScore();goPass();

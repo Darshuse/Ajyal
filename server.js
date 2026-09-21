@@ -37,6 +37,8 @@ async function initDb() {
       CREATE TABLE IF NOT EXISTS activations(code TEXT PRIMARY KEY, note TEXT, created_at TIMESTAMPTZ DEFAULT now());
       CREATE TABLE IF NOT EXISTS events(id BIGSERIAL PRIMARY KEY, name TEXT, mode TEXT, extra JSONB, ip TEXT, ts TIMESTAMPTZ DEFAULT now());
       CREATE TABLE IF NOT EXISTS scores(id BIGSERIAL PRIMARY KEY, name TEXT, score INT, mode TEXT, streak INT, ip TEXT, ts TIMESTAMPTZ DEFAULT now());
+      CREATE TABLE IF NOT EXISTS nursery_answers(id BIGSERIAL PRIMARY KEY, code TEXT, child TEXT, topic TEXT, question TEXT, correct BOOLEAN, ts TIMESTAMPTZ DEFAULT now());
+      CREATE INDEX IF NOT EXISTS idx_na_code ON nursery_answers(code);
     `);
     console.log('[db] connected + schema ready');
   } catch (e) { console.error('[db] init error:', e.message); }
@@ -59,9 +61,9 @@ const RL = {};
 function rateOk(id, kind, max) {
   const day = new Date().toISOString().slice(0, 10);
   const k = String(id).toUpperCase() + '|' + day;
-  RL[k] = RL[k] || { gen: 0, tts: 0 };
-  if (RL[k][kind] >= max) return false;
-  RL[k][kind]++; return true;
+  RL[k] = RL[k] || {};
+  if ((RL[k][kind] || 0) >= max) return false;
+  RL[k][kind] = (RL[k][kind] || 0) + 1; return true;
 }
 function clientIp(req) { return String(req.headers['x-forwarded-for'] || (req.socket && req.socket.remoteAddress) || 'ip').split(',')[0].trim(); }
 function readBody(req) { return new Promise(resolve => { let d = ''; req.on('data', c => { d += c; if (d.length > 1e6) req.destroy(); }); req.on('end', () => resolve(d)); }); }
@@ -149,6 +151,38 @@ async function handleLeaderboard(req, res, u) {
   catch (e) { return sendJSON(res, 500, { error: 'db' }); }
 }
 
+// ===== تقارير الحضانة =====
+async function handleAnswer(req, res) {
+  const raw = await readBody(req); let b = {}; try { b = JSON.parse(raw || '{}'); } catch (_) {}
+  const code = String(b.code || '').trim().toUpperCase();
+  if (!(await isActive(code))) return sendJSON(res, 402, { error: 'not_active' });
+  if (!pool) return sendJSON(res, 200, { ok: false, stored: false });
+  if (!rateOk(clientIp(req), 'ans', 3000)) return sendJSON(res, 429, { error: 'rate_limited' });
+  const child = (String(b.child || '').trim().slice(0, 60)) || null;
+  const topic = (String(b.topic || '').trim().slice(0, 80)) || null;
+  const question = (String(b.question || '').trim().slice(0, 300)) || null;
+  const correct = !!b.correct;
+  try { await pool.query('INSERT INTO nursery_answers(code,child,topic,question,correct) VALUES($1,$2,$3,$4,$5)', [code, child, topic, question, correct]); return sendJSON(res, 200, { ok: true }); }
+  catch (e) { return sendJSON(res, 500, { error: 'db' }); }
+}
+async function handleReport(req, res, u) {
+  const code = String(u.searchParams.get('code') || '').trim().toUpperCase();
+  if (!(await isActive(code))) return sendJSON(res, 402, { error: 'not_active' });
+  if (!pool) return sendJSON(res, 200, { total: 0, correct: 0, accuracy: 0, topics: [], children: [] });
+  try {
+    const tot = await pool.query('SELECT count(*)::int n, coalesce(sum(case when correct then 1 else 0 end),0)::int c FROM nursery_answers WHERE code=$1', [code]);
+    const byTopic = await pool.query(`SELECT coalesce(topic,'عام') topic, count(*)::int n, coalesce(sum(case when correct then 1 else 0 end),0)::int c FROM nursery_answers WHERE code=$1 GROUP BY topic ORDER BY n DESC LIMIT 20`, [code]);
+    const byChild = await pool.query(`SELECT coalesce(child,'—') child, count(*)::int n, coalesce(sum(case when correct then 1 else 0 end),0)::int c FROM nursery_answers WHERE code=$1 GROUP BY child ORDER BY n DESC LIMIT 20`, [code]);
+    const total = tot.rows[0].n || 0, corr = tot.rows[0].c || 0;
+    const pct = (c, n) => n ? Math.round(c * 100 / n) : 0;
+    return sendJSON(res, 200, {
+      total, correct: corr, accuracy: pct(corr, total),
+      topics: byTopic.rows.map(r => ({ topic: r.topic, total: r.n, correct: r.c, accuracy: pct(r.c, r.n) })),
+      children: byChild.rows.map(r => ({ child: r.child, total: r.n, correct: r.c, accuracy: pct(r.c, r.n) }))
+    });
+  } catch (e) { return sendJSON(res, 500, { error: 'db', detail: String(e.message).slice(0, 150) }); }
+}
+
 // ===== TTS =====
 const TTSCACHE = new Map();
 function ttsCacheGet(k) { return TTSCACHE.get(k); }
@@ -220,6 +254,8 @@ const server = http.createServer(async (req, res) => {
     if (u.pathname === '/api/event' && req.method === 'POST') return await handleEvent(req, res);
     if (u.pathname === '/api/score' && req.method === 'POST') return await handleScore(req, res);
     if (u.pathname === '/api/leaderboard') return await handleLeaderboard(req, res, u);
+    if (u.pathname === '/api/answer' && req.method === 'POST') return await handleAnswer(req, res);
+    if (u.pathname === '/api/report') return await handleReport(req, res, u);
     if (u.pathname === '/api/generate' && req.method === 'POST') return await handleGenerate(req, res);
     if (u.pathname === '/api/tts') return await handleTTS(req, res, u);
   } catch (e) { return sendJSON(res, 500, { error: 'server', detail: String(e && e.message || e).slice(0, 200) }); }
