@@ -99,10 +99,10 @@ async function handleGenerate(req, res) {
   const raw = await readBody(req);
   let body = {}; try { body = JSON.parse(raw || '{}'); } catch (_) {}
   const code = body.code, text = String(body.text || '').trim(), n = Math.max(2, Math.min(10, parseInt(body.n, 10) || 5));
-  let isTrial = false;
+  let isTrial = false, trialKey = '';
   if (!(await isActive(code))) {
-    const ip = clientIp(req);
-    if (!(await canUseTrial(ip))) return sendJSON(res, 402, { error: 'trial_used', retryHours: 48 });
+    trialKey = String(code || '').trim().toUpperCase() || clientIp(req); // كل جهاز بكوده (device id) لا بالـIP
+    if (!(await canUseTrial(trialKey))) return sendJSON(res, 402, { error: 'trial_used', retryHours: 48 });
     isTrial = true;
   }
   if (text.length < 10) return sendJSON(res, 400, { error: 'short_text' });
@@ -119,7 +119,7 @@ async function handleGenerate(req, res) {
     const j = await r.json();
     const txt = (j.content && j.content[0] && j.content[0].text) || '';
     const arr = parseLoose(txt) || [];
-    if (isTrial) await markTrial(clientIp(req));
+    if (isTrial) await markTrial(trialKey);
     return sendJSON(res, 200, { questions: Array.isArray(arr) ? arr : [], trial: isTrial });
   } catch (e) { return sendJSON(res, 502, { error: 'gen_failed', detail: String(e && e.message || e).slice(0, 300) }); }
 }
