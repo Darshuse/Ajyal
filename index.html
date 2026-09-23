@@ -469,6 +469,7 @@
     <div class="lockcard">
       <div class="lockemoji">🔒</div>
       <h3 class="locktitle">اشتراك الحضانات</h3>
+      <div id="paywallMsg" style="display:none;background:var(--surface2);border-radius:12px;padding:12px;margin:0 0 12px;font-size:.9rem;line-height:1.9">🎁 انتهت تجربتك المجانية — ترجع تجرّب بعد <b><span id="paywallHrs">٤٨</span> ساعة</b>، أو اشترك <b>سنويًا</b>:<div style="margin-top:6px;font-weight:800;color:var(--gold-deep);font-size:1.05rem"><span id="paywallPrice">السعودية ٥٠ ريال · مصر ٣٥٠ جنيه</span></div></div>
       <p class="locktext">وضع الروضة يولّد أسئلة من منهجكم ويشغّل الأطفال بأسئلة صفّهم. للتفعيل:</p>
       <ol class="paysteps">
         <li>حوّل قيمة الاشتراك عبر <b>InstaPay</b> إلى الرقم:<br><span class="paynum" id="instaNum">01111145798</span></li>
@@ -498,6 +499,7 @@
   <section id="screenSchool" class="pad hidden">
     <p class="pick-label">وضع الروضة 🏫</p>
     <p class="subtitle" style="margin-bottom:16px">الصِق نص المنهج أو الدرس، والذكاء الاصطناعي يقترح أسئلة للأطفال — ثم <b>تراجعها وتعتمدها المعلّمة</b> قبل اللعب.</p>
+    <div id="trialBanner" style="display:none;background:color-mix(in srgb,var(--mint) 16%, var(--surface));border:1px solid var(--mint);border-radius:12px;padding:11px 14px;margin-bottom:14px;font-size:.9rem;font-weight:700;color:var(--mint-deep);line-height:1.7">🎁 تجربة مجانية: ولّد أسئلة من صفحتين–٣ والعب بها <b>مرة واحدة</b>. بعدها اشترك للاستخدام الدائم.</div>
     <div class="form-row"><label>نص المنهج / الدرس</label>
       <textarea class="inp" id="curText" placeholder="مثال: الحروف الهجائية، الأرقام من ١ إلى ١٠، الألوان الأساسية، أسماء الحيوانات الأليفة وأصواتها…"></textarea></div>
     <div class="form-row"><label>عدد الأسئلة</label>
@@ -1281,9 +1283,25 @@ const INSTAPAY_NUM='01111145798';   // رقم InstaPay لاستقبال الدف
 const WA_NUM='966541655870';        // واتساب لاستقبال إثبات التحويل (صيغة دولية بلا +)
 function devCode(){let c=load('sah_devcode','');if(!c){c='AJYAL-'+Math.random().toString(36).slice(2,8).toUpperCase();store('sah_devcode',c);}return c;}
 function schoolUnlocked(){ if(window.claude&&window.claude.use)return true; return load('sah_school','')==='1'; }
+let trialMode=false, geoPrice='';
+function trialUsedAt(){ return Number(load('sah_trial','0'))||0; }
+function trialAvailable(){ const t=trialUsedAt(); return !t || (Date.now()-t)>48*3600*1000; }
+function trialHoursLeft(){ const left=48*3600*1000-(Date.now()-trialUsedAt()); return Math.max(1,Math.ceil(left/3600000)); }
+async function detectGeo(){
+  try{ const r=await fetch('https://ipapi.co/country/'); const c=(await r.text()).trim().toUpperCase();
+    geoPrice = c==='SA'?'٥٠ ريال سنويًا' : (c==='EG'?'٣٥٠ جنيه سنويًا' : 'السعودية ٥٠ ريال · مصر ٣٥٠ جنيه');
+  }catch(e){ geoPrice='السعودية ٥٠ ريال · مصر ٣٥٠ جنيه'; }
+  const el=$('paywallPrice'); if(el)el.textContent=geoPrice;
+}
+function showLockedPaywall(){
+  $('devCode').textContent=devCode(); $('instaNum').textContent=INSTAPAY_NUM;
+  const m=$('paywallMsg'); if(m){m.style.display='block'; $('paywallHrs').textContent=toAr(trialHoursLeft());}
+  detectGeo(); show('screenPaywall');
+}
 function openSchool(){
-  if(schoolUnlocked()){renderCur();show('screenSchool');return;}
-  $('devCode').textContent=devCode(); $('instaNum').textContent=INSTAPAY_NUM; show('screenPaywall');
+  if(schoolUnlocked()){ trialMode=false; const b=$('trialBanner'); if(b)b.style.display='none'; renderCur(); show('screenSchool'); return; }
+  if(trialAvailable()){ trialMode=true; const b=$('trialBanner'); if(b)b.style.display='block'; renderCur(); show('screenSchool'); return; }
+  showLockedPaywall();
 }
 async function checkActivation(){
   const code=devCode();const btn=$('checkBtn');if(btn)btn.disabled=true;
@@ -1327,10 +1345,14 @@ async function genFromCurriculum(){
     }
     if(arr===null){ // النسخة المنشورة: التوليد عبر الخادم (Claude API)
       const r=await fetch('/api/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text,n,code:devCode()})});
-      if(r.status===402){st.textContent='⚠️ الاشتراك غير مُفعّل — فعّلي «وضع الروضة» أولًا.';$('genBtn').disabled=false;return;}
+      let j={}; try{j=await r.json();}catch(_){}
+      if(r.status===402){ $('genBtn').disabled=false;
+        if(j&&j.error==='trial_used'){ st.textContent=''; showLockedPaywall(); return; }
+        st.textContent='⚠️ الاشتراك غير مُفعّل — فعّلي «وضع الروضة».'; return; }
       if(r.status===501){st.textContent='⚠️ التوليد غير مُهيّأ على الخادم بعد (مفتاح API ناقص).';$('genBtn').disabled=false;return;}
-      if(r.status===429){st.textContent='⚠️ تجاوزتِ حدّ اليوم — حاولي غدًا.';$('genBtn').disabled=false;return;}
-      const j=await r.json(); arr=normArrC(j&&j.questions);
+      if(r.status===429){st.textContent='⚠️ محاولات كثيرة — حاولي لاحقًا.';$('genBtn').disabled=false;return;}
+      if(j&&j.trial){ store('sah_trial', String(Date.now())); }
+      arr=normArrC(j&&j.questions);
     }
     genResults=mapQs(arr);
     if(genResults.length)track('generate',{n:genResults.length});

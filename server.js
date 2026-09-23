@@ -39,6 +39,7 @@ async function initDb() {
       CREATE TABLE IF NOT EXISTS scores(id BIGSERIAL PRIMARY KEY, name TEXT, score INT, mode TEXT, streak INT, ip TEXT, ts TIMESTAMPTZ DEFAULT now());
       CREATE TABLE IF NOT EXISTS nursery_answers(id BIGSERIAL PRIMARY KEY, code TEXT, child TEXT, topic TEXT, question TEXT, correct BOOLEAN, ts TIMESTAMPTZ DEFAULT now());
       CREATE INDEX IF NOT EXISTS idx_na_code ON nursery_answers(code);
+      CREATE TABLE IF NOT EXISTS trials(ip TEXT PRIMARY KEY, last_used TIMESTAMPTZ);
     `);
     console.log('[db] connected + schema ready');
   } catch (e) { console.error('[db] init error:', e.message); }
@@ -83,11 +84,27 @@ function parseLoose(t) {
   if (i >= 0 && j > i) s = s.slice(i, j + 1);
   try { return JSON.parse(s); } catch (_) { return null; }
 }
+// ===== تجربة مجانية: توليد واحد لكل IP كل 48 ساعة (للتسويق) =====
+const TRIAL_MS = 48 * 3600 * 1000;
+const memTrials = {};
+async function canUseTrial(ip) {
+  if (pool) { try { const r = await pool.query('SELECT last_used FROM trials WHERE ip=$1', [ip]); if (!r.rowCount) return true; return (Date.now() - new Date(r.rows[0].last_used).getTime()) > TRIAL_MS; } catch (e) {} }
+  return (Date.now() - (memTrials[ip] || 0)) > TRIAL_MS;
+}
+async function markTrial(ip) {
+  memTrials[ip] = Date.now();
+  if (pool) { try { await pool.query('INSERT INTO trials(ip,last_used) VALUES($1,now()) ON CONFLICT(ip) DO UPDATE SET last_used=now()', [ip]); } catch (e) {} }
+}
 async function handleGenerate(req, res) {
   const raw = await readBody(req);
   let body = {}; try { body = JSON.parse(raw || '{}'); } catch (_) {}
   const code = body.code, text = String(body.text || '').trim(), n = Math.max(2, Math.min(10, parseInt(body.n, 10) || 5));
-  if (!(await isActive(code))) return sendJSON(res, 402, { error: 'not_active' });
+  let isTrial = false;
+  if (!(await isActive(code))) {
+    const ip = clientIp(req);
+    if (!(await canUseTrial(ip))) return sendJSON(res, 402, { error: 'trial_used', retryHours: 48 });
+    isTrial = true;
+  }
   if (text.length < 10) return sendJSON(res, 400, { error: 'short_text' });
   if (!rateOk(code, 'gen', MAX_GEN)) return sendJSON(res, 429, { error: 'rate_limited' });
   const KEY = process.env.ANTHROPIC_API_KEY;
@@ -102,7 +119,8 @@ async function handleGenerate(req, res) {
     const j = await r.json();
     const txt = (j.content && j.content[0] && j.content[0].text) || '';
     const arr = parseLoose(txt) || [];
-    return sendJSON(res, 200, { questions: Array.isArray(arr) ? arr : [] });
+    if (isTrial) await markTrial(clientIp(req));
+    return sendJSON(res, 200, { questions: Array.isArray(arr) ? arr : [], trial: isTrial });
   } catch (e) { return sendJSON(res, 502, { error: 'gen_failed', detail: String(e && e.message || e).slice(0, 300) }); }
 }
 
