@@ -88,6 +88,9 @@
   @keyframes lsway{0%,100%{transform:rotate(-2.4deg)}50%{transform:rotate(2.4deg)}}
   @keyframes lflame{0%,100%{opacity:.82; transform:scaleY(.94)}50%{opacity:1; transform:scaleY(1.06)}}
   @media (prefers-reduced-motion:reduce){.lantern,.lantern .flame{animation:none}}
+  .hero.ramadan .lantern{filter:drop-shadow(0 0 7px rgba(246,180,74,.8)) drop-shadow(0 4px 6px rgba(120,60,10,.22)); animation-duration:4.6s}
+  .hero.ramadan .lantern.r{animation-duration:5.2s}
+  .hero.ramadan .flame{fill:#FFE79A; filter:drop-shadow(0 0 3px #FFCF6A); animation-duration:1.6s}
   .hero.noimg{display:none}
   .hero-cap{position:absolute; inset-inline-start:12px; bottom:12px; display:none}
   .hero-badge2{background:rgba(0,0,0,.42); color:#fff; font-weight:700; font-size:.78rem;
@@ -594,6 +597,19 @@
 </div>
 
 <script>
+/* ===== إضاءة الفوانيس في رمضان تلقائيًا (الشهر الهجري 9) ===== */
+(function(){
+  function isRamadan(){
+    try{ var p=new URLSearchParams(location.search);
+      if(p.get('ramadan')==='1') return true;
+      if(p.get('ramadan')==='0') return false;
+      var m=new Intl.DateTimeFormat('en-u-ca-islamic-umalqura',{month:'numeric'}).format(new Date());
+      return parseInt(m,10)===9;
+    }catch(e){ return false; }
+  }
+  function apply(){ var h=document.querySelector('.hero'); if(h && isRamadan()) h.classList.add('ramadan'); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',apply); else apply();
+})();
 /* ================= BANK: 3 levels × (elders + kids) ================= */
 const BANK = {
   1: [
